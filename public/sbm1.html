@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SBM1 - LG StandByMe Display</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: white;
+    }
+    .container {
+      text-align: center;
+      padding: 40px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    h1 {
+      font-size: 3em;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    .subtitle {
+      font-size: 1.5em;
+      margin-bottom: 40px;
+      opacity: 0.9;
+    }
+    #qrcode {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      display: inline-block;
+      margin: 20px 0;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+    .instruction {
+      font-size: 1.2em;
+      margin-top: 30px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🖥️ LG StandByMe</h1>
+    <p class="subtitle">Welcome to Interactive Display</p>
+    
+    <div id="qrcode"></div>
+    
+    <p class="instruction">📱 스마트폰으로 QR 코드를 스캔해주세요</p>
+  </div>
+
+  <script>
+    // Generate QR code with Mobile1 URL
+    window.addEventListener('DOMContentLoaded', function() {
+      const mobile1URL = window.location.origin + '/mobile1';
+      console.log('Generating QR code for:', mobile1URL);
+      
+      const qrcodeDiv = document.getElementById('qrcode');
+      
+      // Use QRCode constructor to generate directly in div
+      try {
+        new QRCode(qrcodeDiv, {
+          text: mobile1URL,
+          width: 300,
+          height: 300,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.H
+        });
+        console.log('QR code generated successfully!');
+      } catch (error) {
+        console.error('QR code generation error:', error);
+        qrcodeDiv.innerHTML = '<p style="color: red;">QR 코드 생성 실패</p>';
+      }
+    });
+  </script>
+</body>
+</html>
+

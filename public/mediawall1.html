@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediaWall1 - Display</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .header {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 30px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+    .header h1 {
+      color: white;
+      font-size: 3em;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    .header .subtitle {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 1.3em;
+      margin-top: 10px;
+    }
+    .nicknames-container {
+      padding: 40px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      align-items: flex-start;
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+    }
+    .nickname-card {
+      background: white;
+      padding: 30px 40px;
+      border-radius: 15px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      animation: slideIn 0.5s ease-out;
+      min-width: 200px;
+      text-align: center;
+    }
+    .nickname-card .nickname {
+      font-size: 2em;
+      font-weight: bold;
+      color: #1e3c72;
+      margin-bottom: 10px;
+    }
+    .nickname-card .timestamp {
+      font-size: 0.9em;
+      color: #666;
+    }
+    .nickname-card .uuid {
+      font-size: 0.75em;
+      color: #999;
+      margin-top: 5px;
+      word-break: break-all;
+    }
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .empty-state {
+      text-align: center;
+      color: white;
+      padding: 80px 20px;
+      font-size: 1.5em;
+      opacity: 0.7;
+    }
+    .status-indicator {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      background: rgba(0, 255, 0, 0.2);
+      border: 2px solid rgba(0, 255, 0, 0.5);
+      border-radius: 20px;
+      color: white;
+      font-weight: 600;
+      backdrop-filter: blur(10px);
+    }
+    .status-indicator.disconnected {
+      background: rgba(255, 0, 0, 0.2);
+      border-color: rgba(255, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="status-indicator" id="statusIndicator">🟢 연결됨</div>
+  
+  <div class="header">
+    <h1>📺 MediaWall1</h1>
+    <p class="subtitle">실시간 사용자 닉네임 표시</p>
+  </div>
+  
+  <div class="nicknames-container" id="nicknamesContainer">
+    <div class="empty-state">닉네임이 표시될 공간입니다</div>
+  </div>
+
+  <script>
+    const socket = io();
+    const container = document.getElementById('nicknamesContainer');
+    const statusIndicator = document.getElementById('statusIndicator');
+    const nicknames = [];
+
+    // Format timestamp
+    function formatTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      return date.toLocaleString('ko-KR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    // Display nickname
+    function displayNickname(data) {
+      nicknames.push(data);
+      renderNicknames();
+    }
+
+    // Render all nicknames
+    function renderNicknames() {
+      if (nicknames.length === 0) {
+        container.innerHTML = '<div class="empty-state">닉네임이 표시될 공간입니다</div>';
+        return;
+      }
+
+      container.innerHTML = nicknames.map(data => `
+        <div class="nickname-card">
+          <div class="nickname">👤 ${data.nickname}</div>
+          <div class="timestamp">⏰ ${formatTimestamp(data.timestamp)}</div>
+          <div class="uuid">ID: ${data.uuid.substring(0, 8)}...</div>
+        </div>
+      `).join('');
+    }
+
+    // Listen for new nicknames
+    socket.on('display-new-name', (data) => {
+      console.log('Received new nickname:', data);
+      displayNickname(data);
+    });
+
+    // Connection status
+    socket.on('connect', () => {
+      console.log('Connected to server:', socket.id);
+      statusIndicator.textContent = '🟢 연결됨';
+      statusIndicator.classList.remove('disconnected');
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from server');
+      statusIndicator.textContent = '🔴 연결 끊김';
+      statusIndicator.classList.add('disconnected');
+    });
+  </script>
+</body>
+</html>
+
