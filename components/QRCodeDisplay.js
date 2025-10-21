@@ -37,8 +37,8 @@ export default function QRCodeDisplay({ url }) {
       if (window.QRCode) {
         qrInstanceRef.current = new window.QRCode(qrcodeRef.current, {
           text: url,
-          width: 300,
-          height: 300,
+          width: 250,
+          height: 250,
           colorDark: '#000000',
           colorLight: '#ffffff',
           correctLevel: window.QRCode.CorrectLevel?.H || 2
@@ -56,29 +56,75 @@ export default function QRCodeDisplay({ url }) {
       
       <style jsx>{`
         .qrcode-container {
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          padding: 40px;
-          border-radius: 30px;
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.1),
+            rgba(255, 255, 255, 0.05)
+          );
+          backdrop-filter: blur(30px) saturate(180%);
+          -webkit-backdrop-filter: blur(30px) saturate(180%);
+          padding: 30px;
+          border-radius: 25px;
           display: inline-block;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-          min-height: 380px;
+          box-shadow: 
+            0 8px 32px 0 rgba(31, 38, 135, 0.15),
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
+            inset 0 -1px 0 0 rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          min-height: 320px;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: transform 0.3s ease;
+          transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .qrcode-container::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+          );
+          transition: left 0.5s;
+        }
+        
+        .qrcode-container:hover::before {
+          left: 100%;
         }
         
         .qrcode-container:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 25px 70px rgba(0, 0, 0, 0.2);
+          transform: translateY(-8px) scale(1.02);
+          box-shadow: 
+            0 15px 60px 0 rgba(31, 38, 135, 0.25),
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+            inset 0 -1px 0 0 rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.3);
         }
         
         .qrcode {
           display: flex;
           align-items: center;
           justify-content: center;
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          border-radius: 15px;
+          padding: 15px;
+          border: 1px solid rgba(255, 255, 255, 0.5);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        }
+        
+        .qrcode :global(canvas),
+        .qrcode :global(img) {
+          display: block;
         }
       `}</style>
     </div>
