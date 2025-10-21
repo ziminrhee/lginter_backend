@@ -1,8 +1,8 @@
-# LG Interactive Backend
+# LG Interactive Backend (Next.js + Socket.io)
 
-Backend environment for mobile-tv-display interaction using Socket.io
+Backend environment for mobile-tv-display interaction using Next.js and Socket.io
 
-## Architecture
+## 🏗️ Architecture
 
 ### Data Flow
 ```
@@ -15,7 +15,7 @@ Backend environment for mobile-tv-display interaction using Socket.io
    - Events: `mobile-new-user`, `mobile-new-name`, `mobile-new-voice`
 
 2. **Server** (Communication Hub)
-   - Receives events from Mobile, Controller, Device, Entrance
+   - Next.js custom server with Socket.io
    - Routes all signals to appropriate destinations
 
 3. **Devices**
@@ -24,54 +24,124 @@ Backend environment for mobile-tv-display interaction using Socket.io
    - TV1, TV2
    - SW1, SW2
 
-## Current Implementation
+## 📁 Project Structure
 
-### Simple Flow (Phase 1)
-1. SBM1 displays QR code
-2. User scans QR code with M1 (Mobile)
-3. M1 shows UI to input nickname
-4. User enters nickname → appears on MW1 (MediaWall)
+```
+lginter_backend/
+├── pages/                  # Next.js Pages Router
+│   ├── _app.js            # App wrapper
+│   ├── sbm1.js            # QR code display page
+│   ├── mobile1.js         # Mobile input page
+│   └── mediawall1.js      # Display wall page
+├── components/            # Reusable React components
+│   ├── GradientBackground.js
+│   ├── QRCodeDisplay.js
+│   ├── IPConfig.js
+│   ├── NicknameForm.js
+│   └── NicknameCard.js
+├── hooks/                 # Custom React hooks
+│   └── useSocket.js       # Socket.io client hook
+├── styles/               # Global styles
+│   └── globals.css
+├── public/               # Static files (legacy HTML)
+├── server.js            # Next.js custom server with Socket.io
+└── package.json
+```
 
-## Setup
+## 🚀 Setup
 
 ```bash
 # Install dependencies
 yarn install
 
-# Start server
+# Start development server
+yarn dev
+
+# Build for production
+yarn build
+
+# Start production server
 yarn start
 ```
 
-## Access Points
+## 📱 Access Points
 
+### Local (Same Computer)
 - **SBM1 (QR Display)**: http://localhost:3000/sbm1
 - **Mobile1 (Input)**: http://localhost:3000/mobile1
 - **MediaWall1 (Display)**: http://localhost:3000/mediawall1
 
-## Event Codes
+### Network (Mobile/Other Devices)
+- **SBM1**: http://172.20.10.2:3000/sbm1
+- **Mobile1**: http://172.20.10.2:3000/mobile1
+- **MediaWall1**: http://172.20.10.2:3000/mediawall1
 
-### From Mobile
-- `mobile-new-user`
-- `mobile-new-name`
-- `mobile-new-voice`
+⚠️ **Important**: Make sure all devices are on the same WiFi network!
 
-### From Controller
-- `controller-new-decision`
-- `controller-new-voice`
-- `controller-new-name`
+## 🔄 Current Implementation
 
-### From Device
-- `device-new-voice`
-- `device-new-decision`
+### Simple Flow (Phase 1)
+1. SBM1 displays QR code with animated gradient background
+2. User scans QR code with mobile device
+3. Mobile1 shows UI to input nickname
+4. User enters nickname → appears on MediaWall1 in real-time
 
-### From Entrance
-- `entrance-new-user`
-- `entrance-new-name`
+## 📡 Event Codes
 
-## Tech Stack
+### Currently Implemented
+- ✅ `mobile-new-name` (Mobile → Server → MediaWall)
+- ✅ `display-new-name` (Server → MediaWall)
 
-- Node.js + Express
-- Socket.io
-- QRCode.js
-- Vanilla JavaScript (ES6+)
+### Future Implementation
+- ⏳ `mobile-new-user`
+- ⏳ `mobile-new-voice`
+- ⏳ `controller-new-decision`
+- ⏳ `controller-new-voice`
+- ⏳ `controller-new-name`
+- ⏳ `device-new-voice`
+- ⏳ `device-new-decision`
+- ⏳ `entrance-new-user`
+- ⏳ `entrance-new-name`
 
+## 🎨 Tech Stack
+
+- **Frontend**: Next.js (Pages Router), React 19
+- **Backend**: Node.js, Next.js Custom Server
+- **Real-time**: Socket.io
+- **Styling**: CSS-in-JS (styled-jsx)
+- **Utilities**: QRCode.js
+
+## ✨ Features
+
+- ✅ Next.js Pages Router architecture
+- ✅ Reusable React components
+- ✅ Socket.io real-time communication
+- ✅ UUID + Timestamp data management
+- ✅ Animated gradient background (5 blobs)
+- ✅ Glassmorphism design
+- ✅ Responsive UI
+- ✅ QR code generation
+- ✅ Network access support
+
+## 🛠️ Development Notes
+
+- Uses JavaScript (not TypeScript) as per project requirements
+- Uses Next.js Pages Router (not App Router)
+- Custom Socket.io server integration with Next.js
+- All styling uses styled-jsx (CSS-in-JS)
+
+## 📝 Data Structure
+
+### mobile-new-name Event
+```javascript
+{
+  uuid: 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx',
+  timestamp: '2025-10-21T08:39:05.673Z',
+  nickname: 'User Name',
+  clientId: 'socket-id'
+}
+```
+
+---
+
+Made with ❤️ for LG Interactive Exhibition
