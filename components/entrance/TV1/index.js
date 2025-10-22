@@ -19,13 +19,8 @@ export default function TV1Controls() {
       setKeywords(prev => [...prev, {
         id: data.uuid || Date.now(),
         mood: mood,
-        timestamp: Date.now(),
-        // 각 키워드마다 고유한 랜덤 속성 저장
-        size: Math.random() * 2.5 + 2, // 2rem ~ 4.5rem
-        x: Math.random() * 80 + 10, // 10% ~ 90%
-        color: ['#EC4899', '#9333EA', '#C084FC', '#DB2777', '#7C3AED', '#F472B6', '#A855F7'][Math.floor(Math.random() * 7)],
-        rotation: Math.random() * 30 - 15 // -15deg ~ 15deg
-      }].slice(-40)); // 최근 40개까지 유지
+        timestamp: Date.now()
+      }].slice(-30)); // 최근 30개까지 유지
     };
 
     socket.on('display-new-name', handleDisplayName);
@@ -82,134 +77,200 @@ export default function TV1Controls() {
             fontSize: '1.5rem',
             fontWeight: '500'
           }}>
-            감정 키워드가 위에서 떨어져 쌓입니다
+            감정 키워드가 중력으로 떨어져 쌓입니다
           </p>
         </div>
       ) : (
-        <div style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '80vh',
-          pointerEvents: 'none'
-        }}>
-          {keywords.map((item, index) => (
-            <FallingStackingText 
-              key={item.id}
-              text={item.mood}
-              index={index}
-              totalCount={keywords.length}
-              size={item.size}
-              x={item.x}
-              color={item.color}
-              rotation={item.rotation}
-            />
-          ))}
-        </div>
+        <FallingTextCanvas keywords={keywords} />
       )}
     </div>
   );
 }
 
-// 떨어져서 쌓이는 텍스트 컴포넌트
-function FallingStackingText({ text, index, totalCount, size, x, color, rotation }) {
-  const [position, setPosition] = useState({ y: -100 });
-  const [settled, setSettled] = useState(false);
-  const ref = useRef(null);
+// 물리 엔진 기반 떨어지는 텍스트 캔버스
+function FallingTextCanvas({ keywords }) {
+  const containerRef = useRef(null);
+  const [items, setItems] = useState([]);
   
   useEffect(() => {
-    // 약간의 딜레이 후 떨어지기 시작
-    const fallTimer = setTimeout(() => {
-      // 바닥에서부터 쌓이는 높이 계산 (px 단위)
-      // 최근 것일수록 위에 쌓임
-      const stackHeightPx = (totalCount - index - 1) * (size * 16 * 0.6); // rem을 px로 (1rem = 16px), 겹침을 위해 0.6 배수
-      // 화면 안에만 존재하도록 제한 (화면 하단 20px ~ 화면 높이의 80%)
-      const maxHeight = window.innerHeight * 0.8;
-      const finalY = -Math.min(stackHeightPx, maxHeight) + 20; // 20px는 바닥 여백
-      
-      setPosition({ y: finalY });
-      
-      // 떨어지는 시간 후 안착
-      setTimeout(() => {
-        setSettled(true);
-      }, 1500);
-    }, index * 100); // 순차적으로 떨어짐
+    if (typeof window === 'undefined') return;
     
-    return () => clearTimeout(fallTimer);
-  }, [index, totalCount, size]);
+    // 간단한 물리 엔진 구현
+    const COLORS = ['#6B21A8', '#7C3AED', '#5B21B6', '#4C1D95']; // 진한 퍼플 그레이
+    const GRAVITY = 0.8;
+    const BOUNCE = 0.4;
+    const FRICTION = 0.98;
+    
+    const newItems = keywords.map((kw, index) => {
+      const fontSize = Math.random() * 80 + 40; // 40px ~ 120px (큰 타이포)
+      const existingItem = items.find(item => item.id === kw.id);
+      
+      if (existingItem) return existingItem;
+      
+      return {
+        id: kw.id,
+        text: kw.mood,
+        x: Math.random() * (window.innerWidth - 200) + 100,
+        y: -fontSize - 50,
+        vx: (Math.random() - 0.5) * 2,
+        vy: 0,
+        rotation: (Math.random() - 0.5) * 30,
+        angularVelocity: (Math.random() - 0.5) * 0.5,
+        fontSize: fontSize,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        width: fontSize * kw.mood.length * 0.6,
+        height: fontSize,
+        settled: false
+      };
+    });
+    
+    setItems(newItems);
+    
+    let animationFrame;
+    const animate = () => {
+      setItems(prevItems => {
+        const containerHeight = window.innerHeight;
+        const containerWidth = window.innerWidth;
+        
+        return prevItems.map(item => {
+          if (item.settled && item.y >= containerHeight - item.height - 50) {
+            return item;
+          }
+          
+          // 중력 적용
+          let newVy = item.vy + GRAVITY;
+          let newY = item.y + newVy;
+          let newVx = item.vx * FRICTION;
+          let newX = item.x + newVx;
+          let newRotation = item.rotation + item.angularVelocity;
+          let newAngularVelocity = item.angularVelocity * 0.99;
+          let settled = item.settled;
+          
+          // 바닥 충돌
+          if (newY >= containerHeight - item.height - 50) {
+            newY = containerHeight - item.height - 50;
+            newVy = -newVy * BOUNCE;
+            newAngularVelocity = newAngularVelocity * 0.8;
+            
+            if (Math.abs(newVy) < 1) {
+              newVy = 0;
+              settled = true;
+            }
+          }
+          
+          // 좌우 벽 충돌
+          if (newX < 0) {
+            newX = 0;
+            newVx = -newVx * BOUNCE;
+          } else if (newX > containerWidth - item.width) {
+            newX = containerWidth - item.width;
+            newVx = -newVx * BOUNCE;
+          }
+          
+          // 다른 아이템과 충돌 (강력한 겹침 방지)
+          prevItems.forEach(other => {
+            if (other.id !== item.id) {
+              // 실제 텍스트 박스 기반 충돌 감지
+              const itemLeft = newX;
+              const itemRight = newX + item.width;
+              const itemTop = newY;
+              const itemBottom = newY + item.height;
+              
+              const otherLeft = other.x;
+              const otherRight = other.x + other.width;
+              const otherTop = other.y;
+              const otherBottom = other.y + other.height;
+              
+              // AABB (Axis-Aligned Bounding Box) 충돌 감지
+              const overlapX = Math.min(itemRight, otherRight) - Math.max(itemLeft, otherLeft);
+              const overlapY = Math.min(itemBottom, otherBottom) - Math.max(itemTop, otherTop);
+              
+              if (overlapX > 0 && overlapY > 0) {
+                // 겹침 발생! 강력하게 밀어내기
+                const centerDx = (newX + item.width / 2) - (other.x + other.width / 2);
+                const centerDy = (newY + item.height / 2) - (other.y + other.height / 2);
+                
+                // 겹친 방향으로 밀어내기
+                if (Math.abs(centerDx) > Math.abs(centerDy)) {
+                  // X축 방향으로 밀기
+                  if (centerDx > 0) {
+                    newX = otherRight + 5; // 오른쪽으로
+                  } else {
+                    newX = otherLeft - item.width - 5; // 왼쪽으로
+                  }
+                  newVx = -newVx * BOUNCE;
+                } else {
+                  // Y축 방향으로 밀기
+                  if (centerDy > 0) {
+                    newY = otherBottom + 5; // 아래로
+                  } else {
+                    newY = otherTop - item.height - 5; // 위로
+                  }
+                  newVy = -newVy * BOUNCE;
+                }
+                
+                // 충돌 시 회전도 조정
+                newAngularVelocity = (Math.random() - 0.5) * 0.3;
+              }
+            }
+          });
+          
+          return {
+            ...item,
+            x: newX,
+            y: newY,
+            vx: newVx,
+            vy: newVy,
+            rotation: newRotation,
+            angularVelocity: newAngularVelocity,
+            settled: settled
+          };
+        });
+      });
+      
+      animationFrame = requestAnimationFrame(animate);
+    };
+    
+    animate();
+    
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [keywords]);
   
   return (
-    <div
-      ref={ref}
-      style={{
-        position: 'absolute',
-        left: `${x}%`,
-        bottom: '20px', // 화면 하단 고정
-        transform: `translateX(-50%) translateY(${position.y}px) rotate(${settled ? rotation : 0}deg)`,
-        color: color,
-        fontSize: `${size}rem`,
-        fontWeight: '900',
-        textShadow: `
-          0 0 15px ${color}80,
-          0 0 30px ${color}40,
-          3px 3px 6px rgba(0, 0, 0, 0.3)
-        `,
-        transition: settled 
-          ? 'transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)' // 안착 시 바운스
-          : 'transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)', // 떨어질 때 탄성
-        whiteSpace: 'nowrap',
-        pointerEvents: 'none',
-        userSelect: 'none',
-        opacity: 0.95,
-        animation: settled 
-          ? `wobble ${3 + index * 0.2}s ease-in-out infinite, breathe ${4 + index * 0.3}s ease-in-out infinite`
-          : 'spin 1.5s ease-out',
-        zIndex: totalCount - index,
-        maxWidth: '90vw', // 좌우로 화면 밖으로 안 나가도록
-        overflow: 'visible'
-      }}
-    >
-      {text}
-      
-      <style jsx>{`
-        @keyframes wobble {
-          0%, 100% {
-            transform: translateX(-50%) translateY(${position.y}px) rotate(${rotation - 3}deg);
-          }
-          25% {
-            transform: translateX(-50%) translateY(${position.y - 5}px) rotate(${rotation + 2}deg);
-          }
-          50% {
-            transform: translateX(-50%) translateY(${position.y}px) rotate(${rotation + 3}deg);
-          }
-          75% {
-            transform: translateX(-50%) translateY(${position.y - 5}px) rotate(${rotation - 2}deg);
-          }
-        }
-        
-        @keyframes breathe {
-          0%, 100% {
-            font-size: ${size}rem;
-          }
-          50% {
-            font-size: ${size * 1.05}rem;
-          }
-        }
-        
-        @keyframes spin {
-          0% {
-            transform: translateX(-50%) translateY(-100vh) rotate(0deg) scale(0.5);
-            opacity: 0;
-          }
-          60% {
-            opacity: 1;
-          }
-          100% {
-            transform: translateX(-50%) translateY(${position.y}px) rotate(${rotation * 2}deg) scale(1);
-          }
-        }
-      `}</style>
+    <div ref={containerRef} style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      pointerEvents: 'none',
+      overflow: 'hidden'
+    }}>
+      {items.map(item => (
+        <div
+          key={item.id}
+          style={{
+            position: 'absolute',
+            left: `${item.x}px`,
+            top: `${item.y}px`,
+            fontSize: `${item.fontSize}px`,
+            fontWeight: '900',
+            color: item.color,
+            transform: `rotate(${item.rotation}deg)`,
+            textShadow: `0 2px 4px rgba(0, 0, 0, 0.3)`,
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            transition: item.settled ? 'none' : 'transform 0.05s linear',
+            willChange: 'transform'
+          }}
+        >
+          {item.text}
+        </div>
+      ))}
     </div>
   );
 }
