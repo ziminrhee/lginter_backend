@@ -5,6 +5,8 @@ export default function SW2Controls() {
   const { socket } = useSocketSW2();
   const [ambienceData, setAmbienceData] = useState(null);
   const [assignedUsers, setAssignedUsers] = useState({ light: 'N/A', music: 'N/A' });
+  const [youtubeData, setYoutubeData] = useState(null);
+  const [loadingMusic, setLoadingMusic] = useState(false);
 
   useEffect(() => {
     if (!socket) {
@@ -23,8 +25,32 @@ export default function SW2Controls() {
           setAssignedUsers(data.assignedUsers);
           console.log('👥 SW2: Assigned users:', data.assignedUsers);
         }
+        
+        // 노래가 바뀌면 YouTube 검색
+        if (data.song) {
+          searchYouTubeMusic(data.song);
+        }
       } else {
         console.log('⏭️ SW2: Data not for this device, skipping');
+      }
+    };
+    
+    const searchYouTubeMusic = async (songTitle) => {
+      setLoadingMusic(true);
+      try {
+        const [songName, artistName] = songTitle.split(' - ');
+        const response = await fetch('/api/youtube-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ song: songName, artist: artistName })
+        });
+        const data = await response.json();
+        console.log('🎵 YouTube search result:', data);
+        setYoutubeData(data);
+      } catch (error) {
+        console.error('YouTube search error:', error);
+      } finally {
+        setLoadingMusic(false);
       }
     };
 
@@ -148,7 +174,8 @@ export default function SW2Controls() {
                     fontSize: '1.3rem',
                     fontWeight: '700',
                     color: '#9333EA',
-                    lineHeight: '1.4'
+                    lineHeight: '1.4',
+                    marginBottom: '1rem'
                   }}>
                     {ambienceData.song}
                   </div>
@@ -156,15 +183,106 @@ export default function SW2Controls() {
                     fontSize: '0.9rem',
                     color: '#EC4899',
                     fontWeight: '600',
-                    marginTop: '0.75rem',
+                    marginBottom: '1rem',
                     padding: '0.75rem',
                     background: 'rgba(236, 72, 153, 0.1)',
                     borderRadius: '10px'
                   }}>
                     👤 {assignedUsers.music}
                   </div>
+                  
+                  {/* YouTube 플레이어 */}
+                  {loadingMusic ? (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '2rem',
+                      background: 'rgba(147, 51, 234, 0.05)',
+                      borderRadius: '12px'
+                    }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        border: '3px solid #F3E8FF',
+                        borderTop: '3px solid #9333EA',
+                        borderRadius: '50%',
+                        margin: '0 auto',
+                        animation: 'spin 1s linear infinite'
+                      }} />
+                      <p style={{
+                        color: '#9333EA',
+                        fontSize: '0.9rem',
+                        marginTop: '1rem',
+                        opacity: 0.7
+                      }}>
+                        음악을 불러오는 중...
+                      </p>
+                    </div>
+                  ) : youtubeData?.videoId ? (
+                    <div style={{
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      boxShadow: '0 8px 24px rgba(147, 51, 234, 0.15)'
+                    }}>
+                      <iframe
+                        width="100%"
+                        height="200"
+                        src={youtubeData.embedUrl}
+                        title="YouTube Music Player"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        style={{
+                          borderRadius: '12px'
+                        }}
+                      />
+                    </div>
+                  ) : youtubeData?.searchUrl ? (
+                    <div style={{
+                      padding: '1rem',
+                      background: 'rgba(147, 51, 234, 0.05)',
+                      borderRadius: '12px',
+                      textAlign: 'center'
+                    }}>
+                      <p style={{
+                        color: '#9333EA',
+                        fontSize: '0.9rem',
+                        marginBottom: '0.75rem',
+                        opacity: 0.7
+                      }}>
+                        YouTube에서 검색하기
+                      </p>
+                      <a
+                        href={youtubeData.searchUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-block',
+                          padding: '0.75rem 1.5rem',
+                          background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
+                          color: 'white',
+                          textDecoration: 'none',
+                          borderRadius: '10px',
+                          fontSize: '0.95rem',
+                          fontWeight: '600',
+                          boxShadow: '0 4px 12px rgba(147, 51, 234, 0.3)',
+                          transition: 'transform 0.2s'
+                        }}
+                        onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+                        onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+                      >
+                        🎵 YouTube에서 듣기
+                      </a>
+                    </div>
+                  ) : null}
                 </div>
               </div>
+              
+              <style jsx>{`
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `}</style>
 
               <div style={{
                 background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',

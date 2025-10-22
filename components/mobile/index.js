@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
 import useOpenAIAnalysis from "@/utils/hooks/useOpenAIAnalysis";
 
@@ -8,6 +8,18 @@ export default function MobileControls() {
   const [name, setName] = useState("");
   const [mood, setMood] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [weatherGreeting, setWeatherGreeting] = useState(null);
+
+  // 날씨 기반 인사말 가져오기
+  useEffect(() => {
+    fetch('/api/weather')
+      .then(res => res.json())
+      .then(data => {
+        console.log('🌤️ Weather greeting:', data);
+        setWeatherGreeting(data);
+      })
+      .catch(err => console.error('Weather API error:', err));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,6 +73,28 @@ export default function MobileControls() {
         }}>
           환영합니다!
         </h1>
+        
+        {/* 날씨 기반 인사말 */}
+        {weatherGreeting && (
+          <div style={{
+            background: 'linear-gradient(135deg, #F3E8FF 0%, #FCEAFE 100%)',
+            borderRadius: '15px',
+            padding: '1rem',
+            marginBottom: '1.5rem',
+            textAlign: 'center'
+          }}>
+            <p style={{
+              color: '#9333EA',
+              fontSize: '1rem',
+              lineHeight: '1.6',
+              margin: 0,
+              fontWeight: '500'
+            }}>
+              {weatherGreeting.fullGreeting}
+            </p>
+          </div>
+        )}
+        
         <p style={{
           color: '#9333EA',
           fontSize: '1rem',

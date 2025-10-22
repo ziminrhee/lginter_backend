@@ -19,6 +19,14 @@ export const EMOTION_ANALYSIS_SYSTEM_PROMPT = `당신은 감정 분석 전문가
   }
 }
 
+**중요: 음악은 반드시 저작권이 없는 로열티 프리(Royalty Free) 음원만 추천하세요.**
+추천 가능한 음악:
+- YouTube Audio Library의 무료 음원
+- Creative Commons 라이선스 음악
+- Kevin MacLeod, Bensound, Incompetech 등의 무료 음악
+- 클래식 음악 (퍼블릭 도메인)
+- 앰비언트/네이처 사운드
+
 priority는 사용자의 감정 상태에서 각 환경 요소가 얼마나 중요한지를 나타냅니다.
 예: 더운 감정(화남, 답답함) → temperature priority 높음
 예: 우울한 감정 → music priority 높음

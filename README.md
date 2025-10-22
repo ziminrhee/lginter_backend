@@ -237,14 +237,50 @@ The legacy `useSocket` hook is still available for backward compatibility. New c
 
 Made with ❤️ for LG Interactive Exhibition
 
-## 🔐 Environment
-Create a `.env.local` file (not committed) with:
+## 🔐 Environment Variables
 
-```
+Create a `.env.local` file in the project root (not committed to git):
+
+```bash
+# Required: OpenAI API for emotion analysis
+OPENAI_API_KEY=sk-...
+
+# Required: Socket.io Configuration
 NEXT_PUBLIC_SOCKET_URL=http://192.168.45.33:3000
 NEXT_PUBLIC_SOCKET_PATH=/socket.io/
-OPENAI_API_KEY=sk-...
+
+# Optional: Weather API (free tier)
+# Get your key at: https://openweathermap.org/api
+NEXT_PUBLIC_WEATHER_API_KEY=your_openweather_api_key
+
+# Optional: YouTube Data API (free tier)
+# Get your key at: https://console.cloud.google.com/
+NEXT_PUBLIC_YOUTUBE_API_KEY=your_youtube_api_key
 ```
 
-- Socket URL/Path are read by hooks via `utils/constants.js`.
-- POST `/api/openai` with `{ model, messages }` to use the proxy.
+### API Keys Setup Guide
+
+1. **OpenAI API** (Required)
+   - Sign up at: https://platform.openai.com/
+   - Get API key from: https://platform.openai.com/api-keys
+   - Used for: Emotion analysis and environmental recommendations
+
+2. **OpenWeatherMap API** (Optional)
+   - Sign up at: https://openweathermap.org/
+   - Get free API key (1000 calls/day)
+   - Used for: Weather-based greetings on mobile
+   - Fallback: Works without API key (demo data)
+
+3. **YouTube Data API** (Optional)
+   - Go to: https://console.cloud.google.com/
+   - Create a project → Enable YouTube Data API v3
+   - Create credentials → API Key
+   - Used for: Music playback in SW2
+   - Fallback: Shows YouTube search link if no API key
+
+### API Endpoints
+
+- `POST /api/openai` - OpenAI proxy for emotion analysis
+- `GET /api/weather` - Weather-based greeting (Seoul)
+- `GET /api/music-chart?genre=pop&limit=10` - iTunes music chart
+- `POST /api/youtube-search` - YouTube video search for songs

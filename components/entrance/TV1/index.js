@@ -3,7 +3,7 @@ import useSocketTV1 from "@/utils/hooks/useSocketTV1";
 
 export default function TV1Controls() {
   const { socket } = useSocketTV1();
-  const [entries, setEntries] = useState([]);
+  const [keywords, setKeywords] = useState([]);
 
   useEffect(() => {
     if (!socket) {
@@ -15,15 +15,14 @@ export default function TV1Controls() {
 
     const handleDisplayName = (data) => {
       console.log('📺📺📺 TV1 Component received display-new-name:', data);
-      setEntries(prev => [{
+      const mood = data.meta?.mood || '알 수 없음';
+      setKeywords(prev => [...prev, {
         id: data.uuid || Date.now(),
-        name: data.name || '익명',
-        mood: data.meta?.mood || '알 수 없음',
-        timestamp: new Date().toLocaleTimeString('ko-KR')
-      }, ...prev].slice(0, 20)); // 최근 20개만 유지
+        mood: mood,
+        timestamp: Date.now()
+      }].slice(-30)); // 최근 30개만 유지
     };
 
-    // mobile-new-name 이벤트 수신
     socket.on('display-new-name', handleDisplayName);
 
     return () => {
@@ -37,147 +36,126 @@ export default function TV1Controls() {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 50%, #FCEAFE 100%)',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      padding: '2rem'
+      padding: '2rem',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'flex-end',
+      overflow: 'hidden'
     }}>
       <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto'
+        position: 'absolute',
+        top: '2rem',
+        left: '2rem',
+        background: 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '20px',
+        padding: '1rem 2rem',
+        boxShadow: '0 10px 30px rgba(147, 51, 234, 0.15)',
+        border: '1px solid rgba(147, 51, 234, 0.1)',
+        zIndex: 10
       }}>
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: '25px',
-          padding: '2rem',
-          boxShadow: '0 20px 60px rgba(147, 51, 234, 0.15)',
-          border: '1px solid rgba(147, 51, 234, 0.1)',
-          marginBottom: '2rem'
+        <h2 style={{
+          fontSize: '1.5rem',
+          background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          fontWeight: '700',
+          margin: 0
         }}>
-          <h1 style={{
-            fontSize: '2.5rem',
-            background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            fontWeight: '700',
-            marginBottom: '0.5rem'
-          }}>
-            실시간 참여자
-          </h1>
+          감정 키워드 💭
+        </h2>
+      </div>
+
+      {keywords.length === 0 ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '3rem',
+          opacity: 0.5
+        }}>
+          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>💭</div>
           <p style={{
             color: '#9333EA',
-            fontSize: '1rem',
-            opacity: 0.7
+            fontSize: '1.5rem',
+            fontWeight: '500'
           }}>
-            총 {entries.length}명이 입장했습니다
+            감정 키워드가 아래부터 쌓입니다
           </p>
         </div>
+      ) : (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          alignItems: 'flex-end',
+          alignContent: 'flex-end',
+          padding: '2rem',
+          minHeight: '60vh'
+        }}>
+          {keywords.map((item, index) => {
+            // 랜덤 크기 생성 (40px ~ 120px)
+            const size = Math.floor(Math.random() * 80) + 40;
+            // 랜덤 색상 (핑크-퍼플 계열)
+            const colors = [
+              'linear-gradient(135deg, #EC4899 0%, #F472B6 100%)',
+              'linear-gradient(135deg, #9333EA 0%, #A855F7 100%)',
+              'linear-gradient(135deg, #C084FC 0%, #E9D5FF 100%)',
+              'linear-gradient(135deg, #DB2777 0%, #EC4899 100%)',
+              'linear-gradient(135deg, #7C3AED 0%, #9333EA 100%)'
+            ];
+            const randomColor = colors[index % colors.length];
 
-        {entries.length === 0 ? (
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.6)',
-            backdropFilter: 'blur(20px)',
-            borderRadius: '20px',
-            padding: '3rem',
-            textAlign: 'center',
-            border: '2px dashed rgba(147, 51, 234, 0.2)'
-          }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>👥</div>
-            <p style={{
-              color: '#9333EA',
-              fontSize: '1.2rem',
-              opacity: 0.6
-            }}>
-              아직 입장한 참여자가 없습니다
-            </p>
-          </div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gap: '1rem',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))'
-          }}>
-            {entries.map((entry, index) => (
+            return (
               <div
-                key={entry.id}
+                key={item.id}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.8)',
-                  backdropFilter: 'blur(20px)',
-                  borderRadius: '20px',
-                  padding: '1.5rem',
-                  boxShadow: '0 10px 30px rgba(147, 51, 234, 0.1)',
-                  border: '1px solid rgba(147, 51, 234, 0.1)',
-                  animation: 'slideInFromTop 0.5s ease-out',
-                  animationDelay: `${index * 0.05}s`,
+                  background: randomColor,
+                  borderRadius: '50%',
+                  width: `${size}px`,
+                  height: `${size}px`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: '600',
+                  fontSize: `${size * 0.25}px`,
+                  boxShadow: '0 10px 30px rgba(147, 51, 234, 0.3)',
+                  animation: 'bubbleUp 0.8s ease-out',
+                  animationDelay: `${index * 0.1}s`,
                   animationFillMode: 'backwards',
-                  transition: 'all 0.3s'
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  textAlign: 'center',
+                  padding: '0.5rem',
+                  wordBreak: 'keep-all'
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-5px)';
-                  e.currentTarget.style.boxShadow = '0 15px 40px rgba(147, 51, 234, 0.2)';
+                  e.currentTarget.style.transform = 'scale(1.1)';
+                  e.currentTarget.style.boxShadow = '0 15px 40px rgba(147, 51, 234, 0.5)';
                 }}
                 onMouseOut={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 10px 30px rgba(147, 51, 234, 0.1)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 10px 30px rgba(147, 51, 234, 0.3)';
                 }}
               >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '0.75rem'
-                }}>
-                  <h3 style={{
-                    fontSize: '1.3rem',
-                    color: '#9333EA',
-                    fontWeight: '600',
-                    margin: 0
-                  }}>
-                    {entry.name}
-                  </h3>
-                  <span style={{
-                    fontSize: '0.85rem',
-                    color: '#9333EA',
-                    opacity: 0.5
-                  }}>
-                    {entry.timestamp}
-                  </span>
-                </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}>
-                  <span style={{
-                    fontSize: '1.5rem'
-                  }}>
-                    💭
-                  </span>
-                  <p style={{
-                    fontSize: '1rem',
-                    color: '#EC4899',
-                    margin: 0,
-                    fontWeight: '500'
-                  }}>
-                    {entry.mood}
-                  </p>
-                </div>
+                {item.mood}
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
+      )}
 
-        <style jsx>{`
-          @keyframes slideInFromTop {
-            from {
-              opacity: 0;
-              transform: translateY(-20px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
+      <style jsx>{`
+        @keyframes bubbleUp {
+          from {
+            opacity: 0;
+            transform: translateY(100px) scale(0.5);
           }
-        `}</style>
-      </div>
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 }
