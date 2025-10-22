@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import useSocketTV1 from "@/utils/hooks/useSocketTV1";
 
 export default function TV1Controls() {
@@ -19,8 +19,13 @@ export default function TV1Controls() {
       setKeywords(prev => [...prev, {
         id: data.uuid || Date.now(),
         mood: mood,
-        timestamp: Date.now()
-      }].slice(-30)); // 최근 30개만 유지
+        timestamp: Date.now(),
+        // 각 키워드마다 고유한 랜덤 속성 저장
+        size: Math.random() * 2.5 + 2, // 2rem ~ 4.5rem
+        x: Math.random() * 80 + 10, // 10% ~ 90%
+        color: ['#EC4899', '#9333EA', '#C084FC', '#DB2777', '#7C3AED', '#F472B6', '#A855F7'][Math.floor(Math.random() * 7)],
+        rotation: Math.random() * 30 - 15 // -15deg ~ 15deg
+      }].slice(-40)); // 최근 40개까지 유지
     };
 
     socket.on('display-new-name', handleDisplayName);
@@ -37,9 +42,7 @@ export default function TV1Controls() {
       background: 'linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 50%, #FCEAFE 100%)',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       padding: '2rem',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'flex-end',
+      position: 'relative',
       overflow: 'hidden'
     }}>
       <div style={{
@@ -70,7 +73,8 @@ export default function TV1Controls() {
         <div style={{
           textAlign: 'center',
           padding: '3rem',
-          opacity: 0.5
+          opacity: 0.5,
+          marginTop: '10rem'
         }}>
           <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>💭</div>
           <p style={{
@@ -78,81 +82,131 @@ export default function TV1Controls() {
             fontSize: '1.5rem',
             fontWeight: '500'
           }}>
-            감정 키워드가 아래부터 쌓입니다
+            감정 키워드가 위에서 떨어져 쌓입니다
           </p>
         </div>
       ) : (
         <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          alignItems: 'flex-end',
-          alignContent: 'flex-end',
-          padding: '2rem',
-          minHeight: '60vh'
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '80vh',
+          pointerEvents: 'none'
         }}>
-          {keywords.map((item, index) => {
-            // 랜덤 크기 생성 (40px ~ 120px)
-            const size = Math.floor(Math.random() * 80) + 40;
-            // 랜덤 색상 (핑크-퍼플 계열)
-            const colors = [
-              'linear-gradient(135deg, #EC4899 0%, #F472B6 100%)',
-              'linear-gradient(135deg, #9333EA 0%, #A855F7 100%)',
-              'linear-gradient(135deg, #C084FC 0%, #E9D5FF 100%)',
-              'linear-gradient(135deg, #DB2777 0%, #EC4899 100%)',
-              'linear-gradient(135deg, #7C3AED 0%, #9333EA 100%)'
-            ];
-            const randomColor = colors[index % colors.length];
-
-            return (
-              <div
-                key={item.id}
-                style={{
-                  background: randomColor,
-                  borderRadius: '50%',
-                  width: `${size}px`,
-                  height: `${size}px`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: '600',
-                  fontSize: `${size * 0.25}px`,
-                  boxShadow: '0 10px 30px rgba(147, 51, 234, 0.3)',
-                  animation: 'bubbleUp 0.8s ease-out',
-                  animationDelay: `${index * 0.1}s`,
-                  animationFillMode: 'backwards',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
-                  textAlign: 'center',
-                  padding: '0.5rem',
-                  wordBreak: 'keep-all'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.1)';
-                  e.currentTarget.style.boxShadow = '0 15px 40px rgba(147, 51, 234, 0.5)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = '0 10px 30px rgba(147, 51, 234, 0.3)';
-                }}
-              >
-                {item.mood}
-              </div>
-            );
-          })}
+          {keywords.map((item, index) => (
+            <FallingStackingText 
+              key={item.id}
+              text={item.mood}
+              index={index}
+              totalCount={keywords.length}
+              size={item.size}
+              x={item.x}
+              color={item.color}
+              rotation={item.rotation}
+            />
+          ))}
         </div>
       )}
+    </div>
+  );
+}
 
+// 떨어져서 쌓이는 텍스트 컴포넌트
+function FallingStackingText({ text, index, totalCount, size, x, color, rotation }) {
+  const [position, setPosition] = useState({ y: -100 });
+  const [settled, setSettled] = useState(false);
+  const ref = useRef(null);
+  
+  useEffect(() => {
+    // 약간의 딜레이 후 떨어지기 시작
+    const fallTimer = setTimeout(() => {
+      // 바닥에서부터 쌓이는 높이 계산 (px 단위)
+      // 최근 것일수록 위에 쌓임
+      const stackHeightPx = (totalCount - index - 1) * (size * 16 * 0.6); // rem을 px로 (1rem = 16px), 겹침을 위해 0.6 배수
+      // 화면 안에만 존재하도록 제한 (화면 하단 20px ~ 화면 높이의 80%)
+      const maxHeight = window.innerHeight * 0.8;
+      const finalY = -Math.min(stackHeightPx, maxHeight) + 20; // 20px는 바닥 여백
+      
+      setPosition({ y: finalY });
+      
+      // 떨어지는 시간 후 안착
+      setTimeout(() => {
+        setSettled(true);
+      }, 1500);
+    }, index * 100); // 순차적으로 떨어짐
+    
+    return () => clearTimeout(fallTimer);
+  }, [index, totalCount, size]);
+  
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: 'absolute',
+        left: `${x}%`,
+        bottom: '20px', // 화면 하단 고정
+        transform: `translateX(-50%) translateY(${position.y}px) rotate(${settled ? rotation : 0}deg)`,
+        color: color,
+        fontSize: `${size}rem`,
+        fontWeight: '900',
+        textShadow: `
+          0 0 15px ${color}80,
+          0 0 30px ${color}40,
+          3px 3px 6px rgba(0, 0, 0, 0.3)
+        `,
+        transition: settled 
+          ? 'transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)' // 안착 시 바운스
+          : 'transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)', // 떨어질 때 탄성
+        whiteSpace: 'nowrap',
+        pointerEvents: 'none',
+        userSelect: 'none',
+        opacity: 0.95,
+        animation: settled 
+          ? `wobble ${3 + index * 0.2}s ease-in-out infinite, breathe ${4 + index * 0.3}s ease-in-out infinite`
+          : 'spin 1.5s ease-out',
+        zIndex: totalCount - index,
+        maxWidth: '90vw', // 좌우로 화면 밖으로 안 나가도록
+        overflow: 'visible'
+      }}
+    >
+      {text}
+      
       <style jsx>{`
-        @keyframes bubbleUp {
-          from {
-            opacity: 0;
-            transform: translateY(100px) scale(0.5);
+        @keyframes wobble {
+          0%, 100% {
+            transform: translateX(-50%) translateY(${position.y}px) rotate(${rotation - 3}deg);
           }
-          to {
+          25% {
+            transform: translateX(-50%) translateY(${position.y - 5}px) rotate(${rotation + 2}deg);
+          }
+          50% {
+            transform: translateX(-50%) translateY(${position.y}px) rotate(${rotation + 3}deg);
+          }
+          75% {
+            transform: translateX(-50%) translateY(${position.y - 5}px) rotate(${rotation - 2}deg);
+          }
+        }
+        
+        @keyframes breathe {
+          0%, 100% {
+            font-size: ${size}rem;
+          }
+          50% {
+            font-size: ${size * 1.05}rem;
+          }
+        }
+        
+        @keyframes spin {
+          0% {
+            transform: translateX(-50%) translateY(-100vh) rotate(0deg) scale(0.5);
+            opacity: 0;
+          }
+          60% {
             opacity: 1;
-            transform: translateY(0) scale(1);
+          }
+          100% {
+            transform: translateX(-50%) translateY(${position.y}px) rotate(${rotation * 2}deg) scale(1);
           }
         }
       `}</style>

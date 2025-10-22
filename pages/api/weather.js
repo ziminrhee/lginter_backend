@@ -1,11 +1,12 @@
-// OpenWeatherMap API를 사용한 날씨 정보 + 시간대별 인사말
+// OpenWeatherMap API를 사용한 날씨 정보, 시간대별 인사말
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    // OpenWeatherMap API (무료) - API 키 없이도 동작하도록 fallback 제공
+    // OpenWeatherMap API (무료), 근데 api키 아직 안넣음, 하드코딩 상태임
+
     const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY || 'demo';
     const city = 'Seoul';
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=kr`;

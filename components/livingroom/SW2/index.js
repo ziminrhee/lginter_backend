@@ -226,15 +226,24 @@ export default function SW2Controls() {
                       <iframe
                         width="100%"
                         height="200"
-                        src={youtubeData.embedUrl}
+                        src={`${youtubeData.embedUrl}&mute=0`}
                         title="YouTube Music Player"
                         frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; autoplay"
                         allowFullScreen
                         style={{
                           borderRadius: '12px'
                         }}
                       />
+                      <p style={{
+                        fontSize: '0.85rem',
+                        color: '#9333EA',
+                        marginTop: '0.5rem',
+                        textAlign: 'center',
+                        opacity: 0.7
+                      }}>
+                        🎵 음악이 자동 재생됩니다
+                      </p>
                     </div>
                   ) : youtubeData?.searchUrl ? (
                     <div style={{
