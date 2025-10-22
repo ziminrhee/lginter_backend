@@ -1,0 +1,58 @@
+export const EVENTS = {
+  // Mobile
+  MOBILE_NEW_USER: "mobile-new-user",
+  MOBILE_NEW_NAME: "mobile-new-name",
+  MOBILE_NEW_VOICE: "mobile-new-voice",
+
+  // SBM1 (QR / entrance helper)
+  SBM1_NEW_QR: "sbm1-new-qr",
+  SBM1_NEW_USER: "sbm1-new-user",
+
+  // Entrance / MW1 / TV1
+  ENTRANCE_NEW_USER: "entrance-new-user",
+  ENTRANCE_NEW_NAME: "entrance-new-name",
+  MW1_DISPLAY_WELCOME: "mw1-display-welcome",
+  TV1_UPDATE_STATE: "tv1-update-state",
+
+  // Living room devices
+  SW1_DEVICE_DECISION: "device-new-decision", // climate
+  SW1_DEVICE_VOICE: "device-new-voice",      // voice if needed
+  SW2_DEVICE_DECISION: "device-new-decision", // ambience (music/color)
+  SW2_DEVICE_VOICE: "device-new-voice",
+
+  TV2_SHOW_AGGREGATED: "tv2-show-aggregated",
+
+  // Controller (for reference)
+  CONTROLLER_NEW_DECISION: "controller-new-decision",
+  CONTROLLER_NEW_VOICE: "controller-new-voice",
+  CONTROLLER_NEW_NAME: "controller-new-name",
+
+  // Legacy events (기존 기능 유지)
+  DISPLAY_NEW_NAME: "display-new-name",
+  USER_CONNECTED: "user-connected",
+  VOICE_UPDATE: "voice-update"
+};
+
+// Base payload schema for all events
+export const createBasePayload = (source, additionalData = {}) => ({
+  uuid: `uuid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  ts: Date.now(),
+  source,
+  ...additionalData
+});
+
+// Specific payload creators
+export const createMobileUserPayload = (userId, meta = {}) => 
+  createBasePayload("mobile", { userId, meta });
+
+export const createMobileNamePayload = (name, meta = {}) => 
+  createBasePayload("mobile", { name, meta });
+
+export const createMobileVoicePayload = (text, emotion, score = 0.5, meta = {}) => 
+  createBasePayload("mobile", { text, emotion, score, meta });
+
+export const createDeviceDecisionPayload = (type, data, assignedUser, meta = {}) => 
+  createBasePayload(type, { type, assignedUser, ...data, meta });
+
+export const createQRPayload = (qrData, meta = {}) => 
+  createBasePayload("sbm1", { qrData, meta });

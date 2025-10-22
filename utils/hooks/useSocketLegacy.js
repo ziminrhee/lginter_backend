@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
+import { SOCKET_CONFIG } from '../utils/constants';
 
 let socket;
 
@@ -19,9 +20,9 @@ export default function useSocket() {
 
   const socketInitializer = async () => {
     // Create socket connection
-    socket = io({
-      path: '/socket.io/',
-      transports: ['websocket', 'polling']
+    socket = io(SOCKET_CONFIG.URL, {
+      path: SOCKET_CONFIG.PATH,
+      transports: SOCKET_CONFIG.TRANSPORTS
     });
 
     socket.on('connect', () => {

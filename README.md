@@ -39,8 +39,19 @@ lginter_backend/
 │   ├── IPConfig.js
 │   ├── NicknameForm.js
 │   └── NicknameCard.js
-├── hooks/                 # Custom React hooks
+├── hooks/                 # Custom React hooks (Legacy)
 │   └── useSocket.js       # Socket.io client hook
+├── utils/                 # Utility functions and hooks
+│   ├── constants.js       # Configuration constants
+│   └── hooks/             # Device-specific socket hooks
+│       ├── socketEvents.js    # Event constants and payload creators
+│       ├── useSocketMobile.js # Mobile device hook
+│       ├── useSocketSBM1.js   # SBM1 QR display hook
+│       ├── useSocketMW1.js    # MediaWall1 display hook
+│       ├── useSocketTV1.js    # TV1 state hook
+│       ├── useSocketTV2.js    # TV2 aggregated data hook
+│       ├── useSocketSW1.js    # SW1 climate control hook
+│       └── useSocketSW2.js    # SW2 ambience control hook
 ├── styles/               # Global styles
 │   └── globals.css
 ├── public/               # Static files (legacy HTML)
@@ -72,9 +83,9 @@ yarn start
 - **MediaWall1 (Display)**: http://localhost:3000/mediawall1
 
 ### Network (Mobile/Other Devices)
-- **SBM1**: http://172.20.10.2:3000/sbm1
-- **Mobile1**: http://172.20.10.2:3000/mobile1
-- **MediaWall1**: http://172.20.10.2:3000/mediawall1
+- **SBM1**: http://192.168.45.33:3000/sbm1
+- **Mobile1**: http://192.168.45.33:3000/mobile1
+- **MediaWall1**: http://192.168.45.33:3000/mediawall1
 
 ⚠️ **Important**: Make sure all devices are on the same WiFi network!
 
@@ -142,6 +153,98 @@ yarn start
 }
 ```
 
+## 🔌 New Socket Hook System
+
+### Overview
+The new system provides device-specific socket hooks for better organization and type safety. Each device has its own dedicated hook with standardized payload schemas.
+
+### Available Hooks
+
+#### `useSocketMobile.js`
+- **Purpose**: Mobile device interactions
+- **Events**: `mobile-new-user`, `mobile-new-name`, `mobile-new-voice`
+- **Methods**: `emitNewUser()`, `emitNewName()`, `emitNewVoice()`
+
+#### `useSocketSBM1.js`
+- **Purpose**: QR code generation and entrance management
+- **Events**: `sbm1-new-qr`, `sbm1-new-user`
+- **Methods**: `emitNewQr()`, `emitSbm1NewUser()`
+
+#### `useSocketMW1.js`
+- **Purpose**: MediaWall display management
+- **Events**: `mw1-display-welcome`
+- **Methods**: `displayWelcome()`
+
+#### `useSocketTV1.js`
+- **Purpose**: TV1 state management
+- **Events**: `tv1-update-state`
+- **Methods**: `updateTv1State()`
+
+#### `useSocketTV2.js`
+- **Purpose**: TV2 aggregated data display
+- **Events**: `tv2-show-aggregated`
+- **Methods**: `showAggregated()`
+
+#### `useSocketSW1.js`
+- **Purpose**: Climate control (temperature/humidity)
+- **Events**: `device-new-decision`, `device-new-voice`
+- **Methods**: `emitClimateDecision()`, `emitDeviceVoice()`
+
+#### `useSocketSW2.js`
+- **Purpose**: Ambience control (music/lighting)
+- **Events**: `device-new-decision`, `device-new-voice`
+- **Methods**: `emitAmbienceDecision()`, `emitDeviceVoice()`
+
+### Payload Schemas
+
+All events use a standardized base payload:
+```javascript
+{
+  uuid: "unique-identifier",
+  ts: 1700000000000,        // timestamp
+  source: "device-type",    // mobile, sbm1, mw1, etc.
+  // ... device-specific data
+}
+```
+
+### Usage Example
+
+```javascript
+import useSocketMobile from '../utils/hooks/useSocketMobile';
+
+function MobileComponent() {
+  const { socket, emitNewName, emitNewVoice } = useSocketMobile();
+  
+  const handleSubmit = (name) => {
+    emitNewName(name, { language: 'ko' });
+  };
+  
+  const handleVoice = (text, emotion) => {
+    emitNewVoice(text, emotion, 0.8);
+  };
+  
+  return (
+    // Component JSX
+  );
+}
+```
+
+### Migration from Legacy System
+
+The legacy `useSocket` hook is still available for backward compatibility. New components should use the device-specific hooks for better organization and type safety.
+
 ---
 
 Made with ❤️ for LG Interactive Exhibition
+
+## 🔐 Environment
+Create a `.env.local` file (not committed) with:
+
+```
+NEXT_PUBLIC_SOCKET_URL=http://192.168.45.33:3000
+NEXT_PUBLIC_SOCKET_PATH=/socket.io/
+OPENAI_API_KEY=sk-...
+```
+
+- Socket URL/Path are read by hooks via `utils/constants.js`.
+- POST `/api/openai` with `{ model, messages }` to use the proxy.
