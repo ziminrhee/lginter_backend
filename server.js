@@ -77,8 +77,10 @@ app.prepare().then(() => {
     });
 
     socket.on('device-new-decision', (data) => {
-      console.log('Received device-new-decision:', data);
-      io.emit('device-decision', data);
+      console.log('🎯 SERVER: Received device-new-decision:', data);
+      console.log('📡 SERVER: Broadcasting device-new-decision to all clients');
+      io.emit('device-new-decision', data);
+      console.log('✅ SERVER: Broadcast complete');
     });
 
     socket.on('device-new-voice', (data) => {
