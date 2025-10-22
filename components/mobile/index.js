@@ -1,13 +1,13 @@
 import { useState } from "react";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
+import useOpenAIAnalysis from "@/utils/hooks/useOpenAIAnalysis";
 
 export default function MobileControls() {
   const { emitNewName, emitNewVoice, socket } = useSocketMobile();
+  const { loading, recommendations, analyze, reset } = useOpenAIAnalysis(socket);
   const [name, setName] = useState("");
   const [mood, setMood] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [recommendations, setRecommendations] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,72 +25,8 @@ export default function MobileControls() {
     console.log('✅ Mobile: Data emitted successfully');
     
     // OpenAI 분석 시작
-    setLoading(true);
     setSubmitted(true);
-    
-    try {
-      const response = await fetch('/api/openai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: `당신은 감정 분석 전문가입니다. 사용자의 감정 상태를 분석하여 최적의 환경 설정을 추천합니다.
-응답은 반드시 다음 JSON 형식으로만 제공하세요:
-{
-  "temperature": 숫자(18-28 범위),
-  "humidity": 숫자(40-60 범위),
-  "lightColor": "#RRGGBB" 형식의 색상 코드,
-  "song": "노래 제목 - 아티스트",
-  "reason": "추천 이유를 한 문단으로 설명"
-}`
-            },
-            {
-              role: 'user',
-              content: `사용자 ${name.trim()}님의 현재 기분: "${mood.trim()}"\n\n이 감정에 맞는 온도, 습도, 조명 색깔, 노래를 추천하고 이유를 설명해주세요.`
-            }
-          ]
-        })
-      });
-
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
-      
-      if (content) {
-        // JSON 파싱
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const result = JSON.parse(jsonMatch[0]);
-          setRecommendations(result);
-          
-          // SW1으로 온도/습도 전송
-          if (socket) {
-            socket.emit('device-new-decision', {
-              device: 'sw1',
-              name: name.trim(),
-              temperature: result.temperature,
-              humidity: result.humidity,
-              timestamp: Date.now()
-            });
-            
-            // SW2로 조명/노래 전송
-            socket.emit('device-new-decision', {
-              device: 'sw2',
-              name: name.trim(),
-              lightColor: result.lightColor,
-              song: result.song,
-              timestamp: Date.now()
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.error('OpenAI API Error:', error);
-    } finally {
-      setLoading(false);
-    }
+    await analyze(name.trim(), mood.trim());
   };
 
   return (
@@ -372,7 +308,7 @@ export default function MobileControls() {
             <button
               onClick={() => {
                 setSubmitted(false);
-                setRecommendations(null);
+                reset();
                 setName("");
                 setMood("");
               }}

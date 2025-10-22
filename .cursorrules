@@ -1,0 +1,49 @@
+# Cursor AI Rules for lginter_backend Project
+
+## Git Commands - CRITICAL RULES ⚠️
+
+### ABSOLUTELY FORBIDDEN:
+1. **NEVER run `git add` without explicit user permission**
+2. **NEVER run `git commit` without explicit user instruction**
+3. **NEVER run `git push` without explicit user instruction**
+4. **NEVER make any git changes on your own initiative**
+
+### When user asks to push to Git:
+1. Ask user which branch to push to
+2. Wait for explicit confirmation before executing any git commands
+3. Show the user what will be pushed before pushing
+
+### Git workflow:
+- Only execute git commands when user explicitly says to do so
+- Always confirm branch name before pushing
+- Never assume user wants to commit/push changes
+
+## Project Specific Rules
+
+### Socket.io Event Names
+- Always use consistent event names between server and client
+- Server emits: `device-decision` (not `device-new-decision`)
+- Clients listen to: `device-decision`
+- Mobile emits: `device-new-decision` → Server broadcasts: `device-decision`
+
+### Environment Variables
+- `.env.local` file must be in project root only
+- Never commit `.env.local` to git
+- Always use `.env.local.example` for template
+
+### File Structure
+- Pages are thin bridges using `dynamic` imports
+- All logic in `components/` folder
+- Socket hooks in `utils/hooks/`
+- Use `useState` for socket instances in hooks to ensure reactivity
+
+### OpenAI API
+- API key only in `.env.local`
+- Only call OpenAI through `/api/openai` proxy route
+- Never expose API key to client
+
+## Remember
+- ASK before running git commands
+- CONFIRM before committing
+- VERIFY before pushing
+

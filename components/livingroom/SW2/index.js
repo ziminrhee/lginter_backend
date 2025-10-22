@@ -4,19 +4,35 @@ import useSocketSW2 from "@/utils/hooks/useSocketSW2";
 export default function SW2Controls() {
   const { socket } = useSocketSW2();
   const [ambienceData, setAmbienceData] = useState(null);
+  const [assignedUsers, setAssignedUsers] = useState({ light: 'N/A', music: 'N/A' });
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket) {
+      console.log('SW2 Component: Waiting for socket connection...');
+      return;
+    }
 
-    socket.on('device-new-decision', (data) => {
-      console.log('SW2 received data:', data);
+    console.log('SW2 Component: Socket ready, registering event listener');
+
+    const handleDeviceDecision = (data) => {
+      console.log('💡 SW2 received device-decision:', data);
       if (data.device === 'sw2') {
+        console.log('✅ SW2: Data matched, updating state');
         setAmbienceData(data);
+        if (data.assignedUsers) {
+          setAssignedUsers(data.assignedUsers);
+          console.log('👥 SW2: Assigned users:', data.assignedUsers);
+        }
+      } else {
+        console.log('⏭️ SW2: Data not for this device, skipping');
       }
-    });
+    };
+
+    socket.on('device-decision', handleDeviceDecision);
 
     return () => {
-      socket.off('device-new-decision');
+      console.log('SW2 Component: Removing event listener');
+      socket.off('device-decision', handleDeviceDecision);
     };
   }, [socket]);
 
@@ -65,28 +81,6 @@ export default function SW2Controls() {
 
           {ambienceData ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{
-                background: 'linear-gradient(135deg, #F3E8FF 0%, #FCEAFE 100%)',
-                borderRadius: '15px',
-                padding: '1.5rem',
-                textAlign: 'center'
-              }}>
-                <div style={{
-                  fontSize: '0.9rem',
-                  color: '#9333EA',
-                  opacity: 0.7,
-                  marginBottom: '0.5rem'
-                }}>
-                  현재 사용자
-                </div>
-                <div style={{
-                  fontSize: '1.5rem',
-                  fontWeight: '700',
-                  color: '#9333EA'
-                }}>
-                  {ambienceData.name}님
-                </div>
-              </div>
 
               <div style={{
                 background: 'rgba(255, 255, 255, 0.9)',
@@ -124,6 +118,17 @@ export default function SW2Controls() {
                     }}>
                       {ambienceData.lightColor}
                     </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#EC4899',
+                      fontWeight: '600',
+                      marginTop: '0.75rem',
+                      padding: '0.75rem',
+                      background: 'rgba(236, 72, 153, 0.1)',
+                      borderRadius: '10px'
+                    }}>
+                      👤 {assignedUsers.light}
+                    </div>
                   </div>
                 </div>
 
@@ -146,6 +151,17 @@ export default function SW2Controls() {
                     lineHeight: '1.4'
                   }}>
                     {ambienceData.song}
+                  </div>
+                  <div style={{
+                    fontSize: '0.9rem',
+                    color: '#EC4899',
+                    fontWeight: '600',
+                    marginTop: '0.75rem',
+                    padding: '0.75rem',
+                    background: 'rgba(236, 72, 153, 0.1)',
+                    borderRadius: '10px'
+                  }}>
+                    👤 {assignedUsers.music}
                   </div>
                 </div>
               </div>

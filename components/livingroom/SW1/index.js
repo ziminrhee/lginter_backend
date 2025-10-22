@@ -4,19 +4,35 @@ import useSocketSW1 from "@/utils/hooks/useSocketSW1";
 export default function SW1Controls() {
   const { socket } = useSocketSW1();
   const [climateData, setClimateData] = useState(null);
+  const [assignedUsers, setAssignedUsers] = useState({ temperature: 'N/A', humidity: 'N/A' });
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket) {
+      console.log('SW1 Component: Waiting for socket connection...');
+      return;
+    }
 
-    socket.on('device-new-decision', (data) => {
-      console.log('SW1 received data:', data);
+    console.log('SW1 Component: Socket ready, registering event listener');
+
+    const handleDeviceDecision = (data) => {
+      console.log('🌡️ SW1 received device-decision:', data);
       if (data.device === 'sw1') {
+        console.log('✅ SW1: Data matched, updating state');
         setClimateData(data);
+        if (data.assignedUsers) {
+          setAssignedUsers(data.assignedUsers);
+          console.log('👥 SW1: Assigned users:', data.assignedUsers);
+        }
+      } else {
+        console.log('⏭️ SW1: Data not for this device, skipping');
       }
-    });
+    };
+
+    socket.on('device-decision', handleDeviceDecision);
 
     return () => {
-      socket.off('device-new-decision');
+      console.log('SW1 Component: Removing event listener');
+      socket.off('device-decision', handleDeviceDecision);
     };
   }, [socket]);
 
@@ -65,28 +81,6 @@ export default function SW1Controls() {
 
           {climateData ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{
-                background: 'linear-gradient(135deg, #F3E8FF 0%, #FCEAFE 100%)',
-                borderRadius: '15px',
-                padding: '1.5rem',
-                textAlign: 'center'
-              }}>
-                <div style={{
-                  fontSize: '0.9rem',
-                  color: '#9333EA',
-                  opacity: 0.7,
-                  marginBottom: '0.5rem'
-                }}>
-                  현재 사용자
-                </div>
-                <div style={{
-                  fontSize: '1.5rem',
-                  fontWeight: '700',
-                  color: '#9333EA'
-                }}>
-                  {climateData.name}님
-                </div>
-              </div>
 
               <div style={{
                 display: 'grid',
@@ -112,9 +106,20 @@ export default function SW1Controls() {
                   <div style={{
                     fontSize: '1rem',
                     color: '#9333EA',
-                    opacity: 0.7
+                    opacity: 0.7,
+                    marginBottom: '1rem'
                   }}>
                     설정 온도
+                  </div>
+                  <div style={{
+                    fontSize: '0.9rem',
+                    color: '#EC4899',
+                    fontWeight: '600',
+                    padding: '0.75rem',
+                    background: 'rgba(236, 72, 153, 0.1)',
+                    borderRadius: '10px'
+                  }}>
+                    👤 {assignedUsers.temperature}
                   </div>
                 </div>
 
@@ -137,9 +142,20 @@ export default function SW1Controls() {
                   <div style={{
                     fontSize: '1rem',
                     color: '#9333EA',
-                    opacity: 0.7
+                    opacity: 0.7,
+                    marginBottom: '1rem'
                   }}>
                     설정 습도
+                  </div>
+                  <div style={{
+                    fontSize: '0.9rem',
+                    color: '#EC4899',
+                    fontWeight: '600',
+                    padding: '0.75rem',
+                    background: 'rgba(236, 72, 153, 0.1)',
+                    borderRadius: '10px'
+                  }}>
+                    👤 {assignedUsers.humidity}
                   </div>
                 </div>
               </div>

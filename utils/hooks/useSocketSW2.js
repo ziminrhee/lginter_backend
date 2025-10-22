@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { EVENTS, createDeviceDecisionPayload, createBasePayload } from "./socketEvents";
 import { SOCKET_CONFIG } from "../constants";
@@ -6,39 +6,33 @@ import { SOCKET_CONFIG } from "../constants";
 // SW2 is ambience (music / light)
 export default function useSocketSW2() {
   const socketRef = useRef(null);
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
     let mounted = true;
-    (async () => {
-      try { 
-        await fetch("/api/socket"); 
-      } catch (e) {
-        console.log("API socket endpoint not available, using direct connection");
-      }
-      if (!mounted) return;
-      
-      const s = io(SOCKET_CONFIG.URL, { 
-        path: SOCKET_CONFIG.PATH,
-        transports: SOCKET_CONFIG.TRANSPORTS
-      });
-      socketRef.current = s;
-      
-      s.on("connect", () => {
-        console.log("SW2 socket connected:", s.id);
-        s.emit("sw2-init");
-      });
+    
+    console.log("SW2 Hook: Initializing socket connection...");
+    
+    const s = io(SOCKET_CONFIG.URL, { 
+      path: SOCKET_CONFIG.PATH,
+      transports: SOCKET_CONFIG.TRANSPORTS
+    });
+    
+    socketRef.current = s;
+    setSocket(s);
+    
+    s.on("connect", () => {
+      console.log("✅ SW2 socket connected:", s.id);
+      s.emit("sw2-init");
+    });
 
-      s.on("disconnect", () => {
-        console.log("SW2 socket disconnected");
-      });
-
-      s.on(EVENTS.CONTROLLER_NEW_DECISION, (data) => {
-        console.log("SW2 controller decision:", data);
-      });
-    })();
+    s.on("disconnect", () => {
+      console.log("❌ SW2 socket disconnected");
+    });
     
     return () => {
       mounted = false;
+      console.log("SW2 Hook: Cleaning up socket");
       if (socketRef.current) { 
         socketRef.current.disconnect(); 
         socketRef.current = null; 
@@ -59,7 +53,7 @@ export default function useSocketSW2() {
   };
 
   return { 
-    socket: socketRef.current,
+    socket,
     emitAmbienceDecision, 
     emitDeviceVoice 
   };
