@@ -34,7 +34,7 @@ export default function useOpenAIAnalysis(socket) {
           
           // 서버로 사용자 니즈 전송 (우선순위 포함)
           if (socket) {
-            socket.emit('user-needs', {
+            socket.emit('mobile-user-needs', {
               userId: name,
               temperature: result.temperature,
               humidity: result.humidity,

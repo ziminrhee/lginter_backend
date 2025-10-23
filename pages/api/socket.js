@@ -116,7 +116,6 @@ export default function handler(req, res) {
   io.on("connection", (socket) => {
     // Mobile events - broadcast to MW1 and TV1
     socket.on("mobile-new-name", (data) => {
-        console.log('data', data);
       io.emit("display-new-name", data);
     });
 
@@ -128,26 +127,6 @@ export default function handler(req, res) {
       io.emit("voice-update", data);
     });
 
-    // Device-specific events
-    socket.on("sbm1-new-qr", (data) => {
-      io.emit("qr-generated", data);
-    });
-
-    socket.on("sbm1-new-user", (data) => {
-      io.emit("entrance-new-user", data);
-    });
-
-    socket.on("mw1-display-welcome", (data) => {
-      io.emit("welcome-display", data);
-    });
-
-    socket.on("tv1-update-state", (data) => {
-      io.emit("tv1-state-changed", data);
-    });
-
-    socket.on("tv2-show-aggregated", (data) => {
-      io.emit("aggregated-data", data);
-    });
 
     socket.on("device-new-decision", (data) => {
       io.emit("device-decision", data);
@@ -158,7 +137,7 @@ export default function handler(req, res) {
     });
 
     // 사용자 니즈 수신 및 우선순위 계산
-    socket.on("user-needs", (data) => {
+    socket.on("mobile-user-needs", (data) => {
       userNeeds.set(data.userId, {
         temperature: data.temperature,
         humidity: data.humidity,

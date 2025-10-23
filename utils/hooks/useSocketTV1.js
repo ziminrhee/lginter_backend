@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { EVENTS, createBasePayload } from "./socketEvents";
+import { createBasePayload } from "./socketEvents";
 import { SOCKET_CONFIG } from "../constants";
 
 export default function useSocketTV1() {
@@ -41,10 +41,6 @@ export default function useSocketTV1() {
       s.on("display-new-name", (data) => {
         console.log("📺 TV1 received display-new-name:", data);
       });
-
-      s.on(EVENTS.TV1_UPDATE_STATE, (payload) => {
-        console.log("TV1 state update", payload);
-      });
     })();
     
     return () => {
@@ -57,13 +53,8 @@ export default function useSocketTV1() {
     };
   }, []);
 
-  const updateTv1State = (state, meta = {}) => {
-    const payload = createBasePayload("tv1", { state, meta });
-    socketRef.current?.emit(EVENTS.TV1_UPDATE_STATE, payload);
-  };
-
   return { 
     socket,
-    updateTv1State 
+    
   };
 }

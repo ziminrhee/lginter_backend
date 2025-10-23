@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { EVENTS, createBasePayload } from "./socketEvents";
+import { createBasePayload } from "./socketEvents";
 import { SOCKET_CONFIG } from "../constants";
 
 export default function useSocketMW1() {
@@ -41,10 +41,6 @@ export default function useSocketMW1() {
       s.on("display-new-name", (data) => {
         console.log("🎉 MW1 received display-new-name:", data);
       });
-
-      s.on(EVENTS.MW1_DISPLAY_WELCOME, (data) => {
-        console.log("MW1 DISPLAY WELCOME:", data);
-      });
     })();
     
     return () => {
@@ -57,13 +53,8 @@ export default function useSocketMW1() {
     };
   }, []);
 
-  const displayWelcome = (text, meta = {}) => {
-    const payload = createBasePayload("mw1", { text, meta });
-    socketRef.current?.emit(EVENTS.MW1_DISPLAY_WELCOME, payload);
-  };
-
   return { 
     socket,
-    displayWelcome 
+    
   };
 }

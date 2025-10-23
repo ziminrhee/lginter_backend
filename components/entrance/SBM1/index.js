@@ -1,8 +1,6 @@
 import { useEffect, useRef } from "react";
-import useSocketSBM1 from "@/utils/hooks/useSocketSBM1";
 
 export default function SBM1Controls() {
-  const { emitNewQr } = useSocketSBM1();
   const qrRef = useRef(null);
 
   useEffect(() => {

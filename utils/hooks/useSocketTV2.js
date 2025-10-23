@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { EVENTS, createBasePayload } from "./socketEvents";
+import { createBasePayload } from "./socketEvents";
 import { SOCKET_CONFIG } from "../constants";
 
 export default function useSocketTV2() {
@@ -48,14 +48,8 @@ export default function useSocketTV2() {
     };
   }, []);
 
-  const showAggregated = (aggregated, meta = {}) => {
-    // payload: { uuid, ts, aggregated: {...} }
-    const payload = createBasePayload("tv2", { aggregated, meta });
-    socketRef.current?.emit(EVENTS.TV2_SHOW_AGGREGATED, payload);
-  };
-
   return { 
     socket,
-    showAggregated 
+    
   };
 }

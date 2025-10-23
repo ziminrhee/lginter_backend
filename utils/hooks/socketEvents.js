@@ -11,8 +11,7 @@ export const EVENTS = {
   // Entrance / MW1 / TV1
   ENTRANCE_NEW_USER: "entrance-new-user",
   ENTRANCE_NEW_NAME: "entrance-new-name",
-  MW1_DISPLAY_WELCOME: "mw1-display-welcome",
-  TV1_UPDATE_STATE: "tv1-update-state",
+  
 
   // Living room devices
   SW1_DEVICE_DECISION: "device-new-decision", // climate
@@ -20,7 +19,7 @@ export const EVENTS = {
   SW2_DEVICE_DECISION: "device-new-decision", // ambience (music/color)
   SW2_DEVICE_VOICE: "device-new-voice",
 
-  TV2_SHOW_AGGREGATED: "tv2-show-aggregated",
+  
 
   // Controller (for reference)
   CONTROLLER_NEW_DECISION: "controller-new-decision",

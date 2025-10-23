@@ -41,22 +41,9 @@ export default function useSocketSBM1() {
     };
   }, []);
 
-  // Emits a QR generation event and a new user via SBM1 device
-  const emitNewQr = (qrData, meta = {}) => {
-    // qrPayload: { uuid, ts, qrData, meta }
-    const payload = createQRPayload(qrData, meta);
-    socketRef.current?.emit(EVENTS.SBM1_NEW_QR, payload);
-  };
 
-  const emitSbm1NewUser = (payload = {}) => {
-    // payload: { uuid, ts, source: 'SBM1', meta }
-    const finalPayload = payload.uuid ? payload : createBasePayload("sbm1", payload);
-    socketRef.current?.emit(EVENTS.SBM1_NEW_USER, finalPayload);
-  };
 
   return { 
     socket: socketRef.current,
-    emitNewQr, 
-    emitSbm1NewUser 
   };
 }
