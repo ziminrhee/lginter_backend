@@ -1,6 +1,6 @@
 // Socket configuration constants
 export const SOCKET_CONFIG = {
-  URL: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://192.168.45.33:3000',
+  URL: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://172.20.10.2:3000',
   PATH: process.env.NEXT_PUBLIC_SOCKET_PATH || '/api/socketio',
   TRANSPORTS: ['websocket', 'polling']
 };

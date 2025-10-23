@@ -12,7 +12,7 @@ export default function SBM1Controls() {
       if (qrRef.current && window.QRCode) {
         qrRef.current.innerHTML = '';
         new window.QRCode(qrRef.current, {
-          text: `http://192.168.45.33:3000/mobile`,
+          text: `http://172.20.10.2:3000/mobile`,
           width: 280,
           height: 280,
           colorDark: '#9333EA',
