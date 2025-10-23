@@ -116,6 +116,7 @@ export default function handler(req, res) {
   io.on("connection", (socket) => {
     // Mobile events - broadcast to MW1 and TV1
     socket.on("mobile-new-name", (data) => {
+        console.log('data', data);
       io.emit("display-new-name", data);
     });
 

@@ -21,7 +21,7 @@ export default function useSocketMobile() {
 
       console.log("Mobile Hook: Initializing socket connection...");
 
-      const s = io(SOCKET_CONFIG.URL, {
+      const s = io({
         path: SOCKET_CONFIG.PATH,
         transports: SOCKET_CONFIG.TRANSPORTS,
       });

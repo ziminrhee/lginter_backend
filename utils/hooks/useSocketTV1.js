@@ -20,7 +20,7 @@ export default function useSocketTV1() {
 
       console.log("TV1 Hook: Initializing socket connection...");
 
-      const s = io(SOCKET_CONFIG.URL, {
+      const s = io({
         path: SOCKET_CONFIG.PATH,
         transports: SOCKET_CONFIG.TRANSPORTS,
       });

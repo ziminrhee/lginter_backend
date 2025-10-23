@@ -2,17 +2,11 @@
   "name": "lginter-backend",
   "version": "1.0.0",
   "description": "Backend environment for mobile-tv-display interaction",
-  "main": "server.js",
   "scripts": {
-    "dev": "node server.js",
+    "dev": "next dev",
     "build": "next build",
     "start": "NODE_ENV=production node server.js"
   },
-  "keywords": [
-    "socket.io",
-    "express",
-    "real-time"
-  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
