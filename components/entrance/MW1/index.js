@@ -15,7 +15,7 @@ export default function MW1Controls() {
     console.log('MW1 Component: Socket ready, registering event listener');
 
     const handleDisplayName = (data) => {
-      console.log('🎉🎉🎉 MW1 Component received display-new-name:', data);
+      console.log('🎉🎉🎉 MW1 Component received new-name:', data);
       setWelcomeData(data);
       setIsVisible(true);
       
@@ -26,12 +26,12 @@ export default function MW1Controls() {
       }, 5000);
     };
 
-    // mobile-new-name 이벤트 수신
-    socket.on('display-new-name', handleDisplayName);
+    // mobile-new-name 이벤트 수신 (streamlined)
+    socket.on('new-name', handleDisplayName);
 
     return () => {
       console.log('MW1 Component: Removing event listener');
-      socket.off('display-new-name', handleDisplayName);
+      socket.off('new-name', handleDisplayName);
     };
   }, [socket]);
 

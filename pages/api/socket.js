@@ -116,15 +116,15 @@ export default function handler(req, res) {
   io.on("connection", (socket) => {
     // Mobile events - broadcast to MW1 and TV1
     socket.on("mobile-new-name", (data) => {
-      io.emit("display-new-name", data);
+      io.emit("new-name", data);
     });
 
     socket.on("mobile-new-user", (data) => {
-      io.emit("user-connected", data);
+      io.emit("new-user", data);
     });
 
     socket.on("mobile-new-voice", (data) => {
-      io.emit("voice-update", data);
+      io.emit("new-voice-mobile", data);
     });
 
 
@@ -133,7 +133,7 @@ export default function handler(req, res) {
     });
 
     socket.on("device-new-voice", (data) => {
-      io.emit("device-voice", data);
+      io.emit("new-voice-device", data);
     });
 
     // 사용자 니즈 수신 및 우선순위 계산

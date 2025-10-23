@@ -14,7 +14,7 @@ export default function TV1Controls() {
     console.log('TV1 Component: Socket ready, registering event listener');
 
     const handleDisplayName = (data) => {
-      console.log('📺📺📺 TV1 Component received display-new-name:', data);
+      console.log('📺📺📺 TV1 Component received new-name:', data);
       const mood = data.meta?.mood || '알 수 없음';
       setKeywords(prev => [...prev, {
         id: data.uuid || Date.now(),
@@ -23,11 +23,11 @@ export default function TV1Controls() {
       }].slice(-30)); // 최근 30개까지 유지
     };
 
-    socket.on('display-new-name', handleDisplayName);
+    socket.on('new-name', handleDisplayName);
 
     return () => {
       console.log('TV1 Component: Removing event listener');
-      socket.off('display-new-name', handleDisplayName);
+      socket.off('new-name', handleDisplayName);
     };
   }, [socket]);
 

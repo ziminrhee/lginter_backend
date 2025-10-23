@@ -26,10 +26,11 @@ export const EVENTS = {
   CONTROLLER_NEW_VOICE: "controller-new-voice",
   CONTROLLER_NEW_NAME: "controller-new-name",
 
-  // Legacy events (기존 기능 유지)
-  DISPLAY_NEW_NAME: "display-new-name",
-  USER_CONNECTED: "user-connected",
-  VOICE_UPDATE: "voice-update"
+  // Streamlined server broadcasts
+  NEW_NAME: "new-name",
+  NEW_USER: "new-user",
+  NEW_VOICE_MOBILE: "new-voice-mobile",
+  NEW_VOICE_DEVICE: "new-voice-device"
 };
 
 // Base payload schema for all events

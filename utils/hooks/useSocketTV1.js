@@ -37,9 +37,9 @@ export default function useSocketTV1() {
         console.log("❌ TV1 socket disconnected");
       });
 
-      // 중요: display-new-name 이벤트 리스닝
-      s.on("display-new-name", (data) => {
-        console.log("📺 TV1 received display-new-name:", data);
+      // 중요: new-name 이벤트 리스닝 (streamlined)
+      s.on("new-name", (data) => {
+        console.log("📺 TV1 received new-name:", data);
       });
     })();
     
