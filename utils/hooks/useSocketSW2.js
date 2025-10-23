@@ -53,12 +53,12 @@ export default function useSocketSW2() {
     // payload: { uuid, ts, type: 'ambience', music, color, assignedUser }
     const data = { music, color };
     const payload = createDeviceDecisionPayload("ambience", data, assignedUser, meta);
-    socketRef.current?.emit(EVENTS.SW2_DEVICE_DECISION, payload);
+    socketRef.current?.emit(EVENTS.DEVICE_NEW_DECISION, payload);
   };
 
   const emitDeviceVoice = (text, emotion, meta = {}) => {
     const payload = createBasePayload("sw2", { text, emotion, meta });
-    socketRef.current?.emit(EVENTS.SW2_DEVICE_VOICE, payload);
+    socketRef.current?.emit(EVENTS.DEVICE_NEW_VOICE, payload);
   };
 
   return { 

@@ -53,12 +53,12 @@ export default function useSocketSW1() {
     // payload: { uuid, ts, type: 'climate', temp, humidity, assignedUser }
     const data = { temp, humidity };
     const payload = createDeviceDecisionPayload("climate", data, assignedUser, meta);
-    socketRef.current?.emit(EVENTS.SW1_DEVICE_DECISION, payload);
+    socketRef.current?.emit(EVENTS.DEVICE_NEW_DECISION, payload);
   };
 
   const emitDeviceVoice = (text, emotion, meta = {}) => {
     const payload = createBasePayload("sw1", { text, emotion, meta });
-    socketRef.current?.emit(EVENTS.SW1_DEVICE_VOICE, payload);
+    socketRef.current?.emit(EVENTS.DEVICE_NEW_VOICE, payload);
   };
 
   return { 

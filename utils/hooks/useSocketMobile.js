@@ -49,7 +49,7 @@ export default function useSocketMobile() {
     };
   }, []);
 
-  // emits: mobile-new-user, mobile-new-name, mobile-new-voice
+  // emits: mobile-new-user, mobile-new-name, mobile-new-voice, mobile-user-needs
   const emitNewUser = (payload = {}) => {
     const finalPayload = payload.uuid ? payload : createMobileUserPayload(payload.userId, payload.meta);
     console.log("📱 Mobile Hook: Emitting mobile-new-user:", finalPayload);
@@ -68,10 +68,16 @@ export default function useSocketMobile() {
     socketRef.current?.emit(EVENTS.MOBILE_NEW_VOICE, payload);
   };
 
+  const emitUserNeeds = (needs) => {
+    // expects { userId, temperature, humidity, lightColor, song, priority, timestamp }
+    socketRef.current?.emit(EVENTS.MOBILE_USER_NEEDS, needs);
+  };
+
   return { 
     socket,
     emitNewUser, 
     emitNewName, 
-    emitNewVoice 
+    emitNewVoice,
+    emitUserNeeds
   };
 }

@@ -3,28 +3,14 @@ export const EVENTS = {
   MOBILE_NEW_USER: "mobile-new-user",
   MOBILE_NEW_NAME: "mobile-new-name",
   MOBILE_NEW_VOICE: "mobile-new-voice",
+  MOBILE_USER_NEEDS: "mobile-user-needs",
 
-  // SBM1 (QR / entrance helper)
-  SBM1_NEW_QR: "sbm1-new-qr",
-  SBM1_NEW_USER: "sbm1-new-user",
+  // Devices (generic)
+  DEVICE_NEW_DECISION: "device-new-decision",
+  DEVICE_NEW_VOICE: "device-new-voice",
 
-  // Entrance / MW1 / TV1
-  ENTRANCE_NEW_USER: "entrance-new-user",
-  ENTRANCE_NEW_NAME: "entrance-new-name",
-  
-
-  // Living room devices
-  SW1_DEVICE_DECISION: "device-new-decision", // climate
-  SW1_DEVICE_VOICE: "device-new-voice",      // voice if needed
-  SW2_DEVICE_DECISION: "device-new-decision", // ambience (music/color)
-  SW2_DEVICE_VOICE: "device-new-voice",
-
-  
-
-  // Controller (for reference)
-  CONTROLLER_NEW_DECISION: "controller-new-decision",
-  CONTROLLER_NEW_VOICE: "controller-new-voice",
-  CONTROLLER_NEW_NAME: "controller-new-name",
+  // Server broadcasts
+  DEVICE_DECISION: "device-decision",
 
   // Streamlined server broadcasts
   NEW_NAME: "new-name",
@@ -54,5 +40,4 @@ export const createMobileVoicePayload = (text, emotion, score = 0.5, meta = {}) 
 export const createDeviceDecisionPayload = (type, data, assignedUser, meta = {}) => 
   createBasePayload(type, { type, assignedUser, ...data, meta });
 
-export const createQRPayload = (qrData, meta = {}) => 
-  createBasePayload("sbm1", { qrData, meta });
+// (Removed) createQRPayload and SBM1 events are deprecated
