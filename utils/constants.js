@@ -1,6 +1,9 @@
 // Socket configuration constants
+// 자동으로 현재 호스트 감지 (핫스팟 환경에서도 안전하게 작동)
 export const SOCKET_CONFIG = {
-  URL: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://192.168.45.33:3000',
+  URL: typeof window !== 'undefined' 
+    ? `${window.location.protocol}//${window.location.host}` 
+    : (process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000'),
   PATH: process.env.NEXT_PUBLIC_SOCKET_PATH || '/api/socketio',
   TRANSPORTS: ['websocket', 'polling']
 };

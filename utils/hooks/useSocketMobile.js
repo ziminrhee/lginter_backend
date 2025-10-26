@@ -11,33 +11,33 @@ export default function useSocketMobile() {
   useEffect(() => {
     let mounted = true;
 
-    (async () => {
-      try {
-        await fetch("/api/socket");
-      } catch (e) {
-        console.log("API socket endpoint not available, using direct connection");
-      }
-      if (!mounted) return;
+    // Socket 즉시 초기화 (fetch 제거로 지연 최소화)
+    console.log("Mobile Hook: Initializing socket connection...");
 
-      console.log("Mobile Hook: Initializing socket connection...");
+    const s = io({
+      path: SOCKET_CONFIG.PATH,
+      transports: SOCKET_CONFIG.TRANSPORTS,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 10000
+    });
 
-      const s = io({
-        path: SOCKET_CONFIG.PATH,
-        transports: SOCKET_CONFIG.TRANSPORTS,
-      });
+    socketRef.current = s;
+    setSocket(s);
 
-      socketRef.current = s;
-      setSocket(s);
+    s.on("connect", () => {
+      console.log("✅ Mobile socket connected:", s.id);
+      s.emit("mobile-init");
+    });
 
-      s.on("connect", () => {
-        console.log("✅ Mobile socket connected:", s.id);
-        s.emit("mobile-init");
-      });
+    s.on("disconnect", () => {
+      console.log("❌ Mobile socket disconnected");
+    });
 
-      s.on("disconnect", () => {
-        console.log("❌ Mobile socket disconnected");
-      });
-    })();
+    s.on("connect_error", (error) => {
+      console.error("❌ Mobile socket connection error:", error.message);
+    });
 
     return () => {
       mounted = false;

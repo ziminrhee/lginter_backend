@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
 import useOpenAIAnalysis from "@/utils/hooks/useOpenAIAnalysis";
 
-// LG 퓨론 AI 로딩 애니메이션 (간단한 버전)
-function SimpleLGLoadingScreen() {
+// LG 퓨론 AI 로딩 애니메이션 (간단한 버전) - 메모이제이션
+const SimpleLGLoadingScreen = memo(function SimpleLGLoadingScreen() {
   return (
     <div style={{
       textAlign: 'center',
@@ -57,7 +57,7 @@ function SimpleLGLoadingScreen() {
       </p>
     </div>
   );
-}
+});
 
 
 export default function MobileControls() {
@@ -73,21 +73,38 @@ export default function MobileControls() {
   const [showHighlights, setShowHighlights] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
-  // 날씨 기반 인사말 가져오기
+  // 날씨 기반 인사말 가져오기 (타임아웃 설정)
   useEffect(() => {
-    fetch('/api/weather')
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3초 타임아웃
+    
+    fetch('/api/weather', { signal: controller.signal })
       .then(res => res.json())
       .then(data => {
+        clearTimeout(timeoutId);
         console.log('🌤️ Weather greeting:', data);
         setWeatherGreeting(data);
       })
-      .catch(err => console.error('Weather API error:', err));
+      .catch(err => {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          console.log('⏱️ Weather API timeout - continuing without weather');
+        } else {
+          console.error('Weather API error:', err);
+        }
+        // 에러 발생시에도 계속 진행 (날씨 없이)
+      });
+    
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, []);
 
-  // 음성 인식 기능
-  const startVoiceRecognition = () => {
+  // 음성 인식 기능 (메모이제이션)
+  const startVoiceRecognition = useCallback(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('❌ 음성 인식을 지원하지 않는 브라우저입니다.\n\nChrome, Edge, Safari를 사용해주세요.');
+      alert('❌ 음성 인식을 지원하지 않는 브라우저입니다.\n\n직접 입력해주세요. 🖊️');
       return;
     }
 
@@ -115,15 +132,21 @@ export default function MobileControls() {
         console.error('❌ 음성 인식 오류:', event.error);
         setIsListening(false);
         
-        let errorMsg = '음성 인식 오류가 발생했습니다.';
+        let errorMsg = '';
         if (event.error === 'no-speech') {
-          errorMsg = '음성이 감지되지 않았습니다. 다시 시도해주세요.';
+          errorMsg = '음성이 감지되지 않았습니다.\n\n직접 입력해주세요. 🖊️';
         } else if (event.error === 'not-allowed') {
-          errorMsg = '마이크 권한이 거부되었습니다.\n브라우저 설정에서 마이크 권한을 허용해주세요.';
+          errorMsg = '⚠️ 마이크 권한이 필요합니다.\n\n직접 입력하거나, 브라우저 설정에서 마이크 권한을 허용해주세요.\n\n💡 팁: HTTP 연결에서는 보안상 마이크가 제한될 수 있습니다.';
         } else if (event.error === 'network') {
-          errorMsg = '네트워크 오류가 발생했습니다.';
+          errorMsg = '네트워크 오류가 발생했습니다.\n\n직접 입력해주세요. 🖊️';
+        } else {
+          errorMsg = '음성 인식이 불가능합니다.\n\n직접 입력해주세요. 🖊️';
         }
-        alert(errorMsg);
+        
+        // 에러 발생 시에도 입력창에 포커스
+        if (errorMsg) {
+          alert(errorMsg);
+        }
       };
 
       recognition.onend = () => {
@@ -135,12 +158,12 @@ export default function MobileControls() {
       recognition.start();
     } catch (error) {
       console.error('음성 인식 초기화 실패:', error);
-      alert('음성 인식을 시작할 수 없습니다: ' + error.message);
+      alert('음성 인식을 시작할 수 없습니다.\n\n직접 입력해주세요. 🖊️');
       setIsListening(false);
     }
-  };
+  }, []);
 
-  // 타이핑 애니메이션 효과
+  // 타이핑 애니메이션 효과 (최적화)
   useEffect(() => {
     if (!recommendations || !recommendations.reason) return;
     
@@ -150,25 +173,26 @@ export default function MobileControls() {
     
     const typingInterval = setInterval(() => {
       if (index < text.length) {
-        setTypedReason(text.slice(0, index + 1));
-        index++;
+        // 2글자씩 업데이트하여 렌더링 횟수 절반으로 감소
+        setTypedReason(text.slice(0, index + 2));
+        index += 2;
       } else {
         clearInterval(typingInterval);
-        // 타이핑 완료 후 6초간 하이라이트 표시
+        // 타이핑 완료 후 0.5초 대기 후 하이라이트 표시
         setTimeout(() => {
           setShowHighlights(true);
-          // 하이라이트 6초 후 결과 표시
+          // 하이라이트 4초 후 결과 표시 (6초에서 4초로 단축)
           setTimeout(() => {
             setShowResults(true);
-          }, 6000);
+          }, 4000);
         }, 500);
       }
-    }, 30); // 30ms마다 한 글자씩
+    }, 40); // 40ms마다 2글자씩 (전체 속도는 비슷하지만 렌더링 횟수 절반)
 
     return () => clearInterval(typingInterval);
   }, [recommendations]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!name.trim() || !mood.trim()) {
       console.log('❌ Mobile: Name or mood is empty');
@@ -186,7 +210,18 @@ export default function MobileControls() {
     // OpenAI 분석 시작
     setSubmitted(true);
     await analyze(name.trim(), mood.trim());
-  };
+  }, [name, mood, emitNewName, emitNewVoice, analyze]);
+
+  const handleReset = useCallback(() => {
+    setSubmitted(false);
+    reset();
+    setName("");
+    setMood("");
+    setShowReason(false);
+    setTypedReason("");
+    setShowHighlights(false);
+    setShowResults(false);
+  }, [reset]);
 
   return (
     <div style={{
@@ -539,16 +574,7 @@ export default function MobileControls() {
             
             
             <button
-              onClick={() => {
-                setSubmitted(false);
-                reset();
-                setName("");
-                setMood("");
-                setShowReason(false);
-                setTypedReason("");
-                setShowHighlights(false);
-                setShowResults(false);
-              }}
+              onClick={handleReset}
               style={{
                 width: '100%',
                 padding: '1rem',

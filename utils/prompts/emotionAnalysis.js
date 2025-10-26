@@ -19,13 +19,20 @@ export const EMOTION_ANALYSIS_SYSTEM_PROMPT = `당신은 감정 분석 전문가
   }
 }
 
-**중요: 음악은 반드시 저작권이 없는 로열티 프리(Royalty Free) 음원만 추천하세요.**
-추천 가능한 음악:
-- YouTube Audio Library의 무료 음원
-- Creative Commons 라이선스 음악
-- Kevin MacLeod, Bensound, Incompetech 등의 무료 음악
-- 클래식 음악 (퍼블릭 도메인)
-- 앰비언트/네이처 사운드
+**감정에 따라 다양한 장르와 분위기의 음악을 추천하세요.**
+**실제 인기있는 대중음악, K-POP, 팝송 등을 포함하여 추천하세요.**
+
+감정별 음악 추천 예시:
+- 행복/즐거움 → 밝은 K-POP, 신나는 댄스곡, Upbeat Pop (예: Happy - Pharrell Williams, 좋은 날 - IU)
+- 평온/편안함 → 잔잔한 발라드, Chill 힙합, Lo-fi, 어쿠스틱 (예: Blinding Lights - The Weeknd, 밤편지 - 아이유)
+- 슬픔/우울함 → 감성 발라드, 애절한 R&B (예: Someone Like You - Adele, 눈의 꽃 - 박효신)
+- 설렘/기대감 → 경쾌한 인디, 신나는 록, 희망찬 팝 (예: Levitating - Dua Lipa, Dynamite - BTS)
+- 피곤/지침 → 잔잔한 피아노, 힐링 음악, 재즈 (예: River Flows in You - Yiruma)
+- 집중/공부 → 클래식, 재즈, 집중 음악 (예: Canon in D - Pachelbel)
+- 활기/운동 → 강렬한 힙합, EDM, 락 (예: Eye of the Tiger - Survivor, 불타오르네 - BTS)
+
+**매번 다양한 곡을 추천하세요. 같은 곡을 반복하지 마세요.**
+**최신 인기곡, 클래식, K-POP, 팝송 등 폭넓게 추천하세요.**
 
 priority는 사용자의 감정 상태에서 각 환경 요소가 얼마나 중요한지를 나타냅니다.
 예: 더운 감정(화남, 답답함) → temperature priority 높음

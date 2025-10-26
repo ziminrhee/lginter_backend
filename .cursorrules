@@ -42,6 +42,20 @@
 - Only call OpenAI through `/api/openai` proxy route
 - Never expose API key to client
 
+### Server Architecture - CRITICAL ⚠️
+- **NEVER create a separate Express server (`server.js` or similar)**
+- **ONLY use Next.js API Routes for all backend logic**
+- Socket.io MUST run through `/pages/api/socket.js` ONLY
+- No standalone server files allowed
+- All server logic must be in `/pages/api/` directory
+- Use Next.js built-in server: `next dev` and `next start`
+
+### Network & Socket Configuration
+- Socket URL must auto-detect current host using `window.location`
+- Never hardcode IP addresses in `SOCKET_CONFIG.URL`
+- Support hotspot environments by detecting host dynamically
+- Use `typeof window !== 'undefined'` check for SSR compatibility
+
 ## Remember
 - ASK before running git commands
 - CONFIRM before committing

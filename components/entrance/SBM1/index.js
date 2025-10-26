@@ -11,8 +11,10 @@ export default function SBM1Controls() {
     script.onload = () => {
       if (qrRef.current && window.QRCode) {
         qrRef.current.innerHTML = '';
+        // 현재 호스트를 자동으로 감지 (핫스팟 환경에서도 작동)
+        const currentHost = `${window.location.protocol}//${window.location.host}`;
         new window.QRCode(qrRef.current, {
-          text: `http://192.168.45.33:3000/mobile`,
+          text: `${currentHost}/mobile`,
           width: 280,
           height: 280,
           colorDark: '#9333EA',
