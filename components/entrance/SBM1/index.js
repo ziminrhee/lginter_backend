@@ -1,33 +1,46 @@
 import { useEffect, useRef } from "react";
+import QRCode from "qrcode";
 
 export default function SBM1Controls() {
   const qrRef = useRef(null);
 
   useEffect(() => {
-    // QR코드 라이브러리 로드
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-    script.async = true;
-    script.onload = () => {
-      if (qrRef.current && window.QRCode) {
-        qrRef.current.innerHTML = '';
-        // 현재 호스트를 자동으로 감지 (핫스팟 환경에서도 작동)
-        const currentHost = `${window.location.protocol}//${window.location.host}`;
-        new window.QRCode(qrRef.current, {
-          text: `${currentHost}/mobile`,
-          width: 280,
-          height: 280,
-          colorDark: '#9333EA',
-          colorLight: '#FAF5FF',
-          correctLevel: window.QRCode?.CorrectLevel?.H || 2
-        });
-      }
+    let mounted = true;
+    const makeQr = (base) => {
+      const url = `${base}/mobile`;
+      QRCode.toString(url, {
+      type: 'svg',
+      errorCorrectionLevel: 'H',
+    width: 280,
+      margin: 2,
+      color: { dark: '#9333EA', light: '#FAF5FF' }
+      }).then(svg => {
+        if (!mounted || !qrRef.current) return;
+        qrRef.current.innerHTML = svg;
+      }).catch((err) => {
+        console.error('QR generation failed:', err);
+        if (qrRef.current) {
+          qrRef.current.textContent = 'QR 생성 실패';
+        }
+      });
     };
-    document.head.appendChild(script);
-    
+
+    // 우선순위: /api/network-ip → window.location
+    fetch('/api/network-ip')
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error('network-ip failed')))
+      .then((data) => {
+        const base = data?.baseUrl || `${window.location.protocol}//${window.location.host}`;
+        makeQr(base);
+      })
+      .catch(() => {
+        const fallback = `${window.location.protocol}//${window.location.host}`;
+        makeQr(fallback);
+      });
+
     return () => {
-      if (document.head.contains(script)) {
-        document.head.removeChild(script);
+      mounted = false;
+      if (qrRef.current) {
+        qrRef.current.innerHTML = '';
       }
     };
   }, []);
@@ -87,7 +100,7 @@ export default function SBM1Controls() {
           fontSize: '0.95rem',
           opacity: 0.7
         }}>
-          📱 모바일로 스캔해주세요
+           모바일로 스캔해주세요:D
         </p>
       </div>
     </div>

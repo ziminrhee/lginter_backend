@@ -83,16 +83,16 @@ yarn start
 - **MediaWall1 (Display)**: http://localhost:3000/mediawall1
 
 ### Network (Mobile/Other Devices)
-- **SBM1**: http://172.18.6.65:3000/sbm1
-- **Mobile1**: http://172.18.6.65:3000/mobile1
-- **MediaWall1**: http://172.18.6.65:3000/mediawall1
+- **SBM1**: http://10.205.8.136:3000/sbm1
+- **Mobile1**: http://10.205.8.136:3000/mobile1
+- **MediaWall1**: http://10.205.8.136:3000/mediawall1
 
 **현재 접속 주소 (2025-10-27 기준):**
-- Mobile: http://172.18.6.65:3000/mobile
-- Controller: http://172.18.6.65:3000/controller
-- Lab (all devices): http://172.18.6.65:3000/lab/all-devices
-- Entrance: http://172.18.6.65:3000/entrance/{mw1|sbm1|tv1}
-- LivingRoom: http://172.18.6.65:3000/livingroom/{sw1|sw2|tv2}
+- Mobile: http://10.205.8.136:3000/mobile
+- Controller: http://10.205.8.136:3000/controller
+- Lab (all devices): http://10.205.8.136:3000/lab/all-devices
+- Entrance: http://10.205.8.136:3000/entrance/{mw1|sbm1|tv1}
+- LivingRoom: http://10.205.8.136:3000/livingroom/{sw1|sw2|tv2}
 
 ⚠️ **Important**: Make sure all devices are on the same WiFi network!
 
