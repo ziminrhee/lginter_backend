@@ -14,7 +14,7 @@ export default function handler(req, res) {
   const { Server } = require("socket.io");
 
   const io = new Server(res.socket.server, {
-    path: "/api/socketio",
+    path: "/api/socket",
     addTrailingSlash: false,
     transports: ["websocket", "polling"],
   });
@@ -125,37 +125,57 @@ export default function handler(req, res) {
 
   io.on("connection", (socket) => {
     console.log(`✅ Socket connected: ${socket.id}`);
-    
-    // Mobile events - broadcast to MW1 and TV1
+    // --- Init & Rooms ---
+    socket.on("mobile-init", (p) => {
+      socket.join("mobile");
+      if (p?.userId) socket.join(`user:${p.userId}`);
+    });
+    socket.on("livingroom-init", () => socket.join("livingroom"));
+    socket.on("entrance-init", () => socket.join("entrance"));
+    socket.on("controller-init", () => socket.join("controller"));
+
+    // Mobile events - forward to Controller; entrance mirrors for user/name
     socket.on("mobile-new-name", (data) => {
       console.log("📱 Server received mobile-new-name:", data);
+      io.to("controller").emit("mobile-new-name", data);
+      io.to("entrance").emit("entrance-new-name", { userId: data.userId, name: data.name });
+      // legacy shim
       io.emit("new-name", data);
-      console.log("📡 Server broadcasted new-name to all clients");
     });
 
     socket.on("mobile-new-user", (data) => {
       console.log("📱 Server received mobile-new-user:", data);
+      io.to("controller").emit("mobile-new-user", data);
+      io.to("entrance").emit("entrance-new-user", { userId: data.userId, name: data.name });
+      // legacy shim
       io.emit("new-user", data);
-      console.log("📡 Server broadcasted new-user to all clients");
     });
 
     socket.on("mobile-new-voice", (data) => {
       console.log("📱 Server received mobile-new-voice:", data);
+      io.to("controller").emit("mobile-new-voice", data);
+      // legacy shim for current UIs
       io.emit("new-voice-mobile", data);
-      console.log("📡 Server broadcasted new-voice-mobile to all clients");
     });
 
 
-    socket.on("device-new-decision", (data) => {
-      console.log("🎮 Server received device-new-decision:", data);
-      io.emit("device-decision", data);
-      console.log("📡 Server broadcasted device-decision to all clients");
+    // Controller → LivingRoom + Mobile(user)
+    socket.on("controller-new-decision", (data) => {
+      console.log("🎮 Server received controller-new-decision:", data);
+      // broadcast to livingroom
+      io.to("livingroom").emit("device-new-decision", { env: data.params, mergedFrom: [data.userId] });
+      // targeted to mobile user
+      io.to(`user:${data.userId}`).emit("mobile-new-decision", { userId: data.userId, params: data.params, reason: data.reason });
+      // legacy shim for current UIs
+      io.emit("device-decision", { device: "sw2", lightColor: data.params?.lightColor, song: data.params?.music });
+      io.emit("device-decision", { device: "sw1", temperature: data.params?.temp, humidity: data.params?.humidity });
     });
 
-    socket.on("device-new-voice", (data) => {
-      console.log("🎮 Server received device-new-voice:", data);
+    socket.on("controller-new-voice", (data) => {
+      console.log("🎮 Server received controller-new-voice:", data);
+      io.to("livingroom").emit("device-new-voice", data);
+      // legacy shim
       io.emit("new-voice-device", data);
-      console.log("📡 Server broadcasted new-voice-device to all clients");
     });
 
     // 사용자 니즈 수신 및 우선순위 계산

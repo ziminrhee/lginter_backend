@@ -4,7 +4,7 @@ export const SOCKET_CONFIG = {
   URL: typeof window !== 'undefined' 
     ? `${window.location.protocol}//${window.location.host}` 
     : (process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000'),
-  PATH: process.env.NEXT_PUBLIC_SOCKET_PATH || '/api/socketio',
+  PATH: process.env.NEXT_PUBLIC_SOCKET_PATH || '/api/socket',
   TRANSPORTS: ['websocket', 'polling']
 };
 

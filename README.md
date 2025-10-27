@@ -83,9 +83,16 @@ yarn start
 - **MediaWall1 (Display)**: http://localhost:3000/mediawall1
 
 ### Network (Mobile/Other Devices)
-- **SBM1**: http://192.168.45.33:3000/sbm1
-- **Mobile1**: http://192.168.45.33:3000/mobile1
-- **MediaWall1**: http://192.168.45.33:3000/mediawall1
+- **SBM1**: http://172.18.6.65:3000/sbm1
+- **Mobile1**: http://172.18.6.65:3000/mobile1
+- **MediaWall1**: http://172.18.6.65:3000/mediawall1
+
+**현재 접속 주소 (2025-10-27 기준):**
+- Mobile: http://172.18.6.65:3000/mobile
+- Controller: http://172.18.6.65:3000/controller
+- Lab (all devices): http://172.18.6.65:3000/lab/all-devices
+- Entrance: http://172.18.6.65:3000/entrance/{mw1|sbm1|tv1}
+- LivingRoom: http://172.18.6.65:3000/livingroom/{sw1|sw2|tv2}
 
 ⚠️ **Important**: Make sure all devices are on the same WiFi network!
 
@@ -245,9 +252,9 @@ Create a `.env.local` file in the project root (not committed to git):
 # Required: OpenAI API for emotion analysis
 OPENAI_API_KEY=sk-...
 
-# Required: Socket.io Configuration
-NEXT_PUBLIC_SOCKET_URL=http://192.168.45.33:3000
-NEXT_PUBLIC_SOCKET_PATH=/socket.io/
+# Socket.io Configuration (auto-detected, optional override)
+# NEXT_PUBLIC_SOCKET_URL=http://172.18.6.65:3000
+# NEXT_PUBLIC_SOCKET_PATH=/api/socket
 
 # Optional: Weather API (free tier)
 # Get your key at: https://openweathermap.org/api
