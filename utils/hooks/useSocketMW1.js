@@ -22,7 +22,6 @@ export default function useSocketMW1() {
 
       const s = io({
         path: SOCKET_CONFIG.PATH,
-        transports: SOCKET_CONFIG.TRANSPORTS,
       });
 
       socketRef.current = s;

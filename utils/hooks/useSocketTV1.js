@@ -22,7 +22,6 @@ export default function useSocketTV1() {
 
       const s = io({
         path: SOCKET_CONFIG.PATH,
-        transports: SOCKET_CONFIG.TRANSPORTS,
       });
 
       socketRef.current = s;

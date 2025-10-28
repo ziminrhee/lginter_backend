@@ -16,7 +16,7 @@ export default function handler(req, res) {
   const io = new Server(res.socket.server, {
     path: "/api/socket",
     addTrailingSlash: false,
-    transports: ["websocket", "polling"],
+    // transports: ["websocket", "polling"],
   });
 
   // 사용자 니즈 관리 시스템 (migrated from server.js)

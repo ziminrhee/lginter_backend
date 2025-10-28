@@ -16,11 +16,11 @@ export default function useSocketMobile() {
 
     const s = io({
       path: SOCKET_CONFIG.PATH,
-      transports: SOCKET_CONFIG.TRANSPORTS,
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      timeout: 10000
+      // transports: SOCKET_CONFIG.TRANSPORTS,
+      // reconnection: true,
+      // reconnectionDelay: 1000,
+      // reconnectionDelayMax: 5000,
+      // timeout: 10000
     });
 
     socketRef.current = s;
