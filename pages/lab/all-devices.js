@@ -1,40 +1,33 @@
-import dynamic from "next/dynamic";
-
-const MW1 = dynamic(() => import("@/components/entrance/MW1"), { ssr: false });
-const SBM1 = dynamic(() => import("@/components/entrance/SBM1"), { ssr: false });
-const TV1 = dynamic(() => import("@/components/entrance/TV1"), { ssr: false });
-const SW1 = dynamic(() => import("@/components/livingroom/SW1"), { ssr: false });
-const SW2 = dynamic(() => import("@/components/livingroom/SW2"), { ssr: false });
-const TV2 = dynamic(() => import("@/components/livingroom/TV2"), { ssr: false });
+const devices = [
+  { title: "Entrance / MW1", src: "/entrance/mw1" },
+  { title: "Entrance / SBM1", src: "/entrance/sbm1" },
+  { title: "Entrance / TV1", src: "/entrance/tv1" },
+  { title: "LivingRoom / SW1", src: "/livingroom/sw1" },
+  { title: "LivingRoom / SW2", src: "/livingroom/sw2" },
+  { title: "LivingRoom / TV2", src: "/livingroom/tv2" },
+];
 
 export default function AllDevicesLab() {
   return (
-    <div style={{ padding: 16 }}>
-      <h1>Lab / All Devices</h1>
-      <p>Six tiles for MW1, SBM1, TV1, SW1, SW2, TV2</p>
+    <div style={{ padding: 0, margin: 0 }}>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        gap: 16
+        gridTemplateColumns: 'repeat(3, 33.33vw)',
+        gridTemplateRows: 'repeat(2, 50vh)',
+        width: '100vw',
+        gap: 0,
       }}>
-        <Tile title="Entrance / MW1"><MW1 /></Tile>
-        <Tile title="Entrance / SBM1"><SBM1 /></Tile>
-        <Tile title="Entrance / TV1"><TV1 /></Tile>
-        <Tile title="LivingRoom / SW1"><SW1 /></Tile>
-        <Tile title="LivingRoom / SW2"><SW2 /></Tile>
-        <Tile title="LivingRoom / TV2"><TV2 /></Tile>
+        {devices.map((d) => (
+          <iframe
+            key={d.src}
+            src={d.src}
+            title={d.title}
+            style={{ width: '33.33vw', height: '50vh', border: '0' }}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-function Tile({ title, children }) {
-  return (
-    <div style={{ border: '1px solid #eee', borderRadius: 12, padding: 12, background:'#fff' }}>
-      <div style={{ fontWeight: 700, marginBottom: 8 }}>{title}</div>
-      <div style={{ height: 400, overflow: 'auto' }}>{children}</div>
-    </div>
-  );
-}
-
-
+ 
