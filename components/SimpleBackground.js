@@ -11,10 +11,6 @@ export default function SimpleBackground() {
     return () => clearInterval(interval)
   }, [])
 
-  const hue1 = 320 + Math.sin(time) * 15
-  const hue2 = 280 + Math.cos(time * 0.7) * 15
-  const hue3 = 340 + Math.sin(time * 0.5) * 10
-
   return (
     <div style={{
       position: 'fixed',
@@ -24,7 +20,7 @@ export default function SimpleBackground() {
       height: '100vh',
       zIndex: -10,
       pointerEvents: 'none',
-      background: `linear-gradient(135deg, hsl(${hue1}, 35%, 92%) 0%, hsl(${hue2}, 30%, 94%) 50%, hsl(${hue3}, 40%, 93%) 100%)`,
+      background: 'linear-gradient(to bottom, #FFF5F7 0%, #F5E6F5 30%, #E8D5E0 60%, rgb(125, 108, 118) 100%)',
       transition: 'background 0.5s ease'
     }}>
       {/* 애니메이션 원형 블롭 */}
@@ -38,8 +34,8 @@ export default function SimpleBackground() {
         borderRadius: '50%',
         background: `radial-gradient(circle, 
           hsla(45, 80%, 88%, 0.6) 0%,
-          hsla(${hue1}, 60%, 85%, 0.4) 30%,
-          hsla(${hue2}, 50%, 88%, 0.3) 60%,
+          hsla(320, 60%, 85%, 0.4) 30%,
+          hsla(280, 50%, 88%, 0.3) 60%,
           transparent 85%
         )`,
         filter: `blur(${60 + Math.sin(time) * 30}px)`,
@@ -56,7 +52,7 @@ export default function SimpleBackground() {
         height: '50vmin',
         borderRadius: '50%',
         background: `radial-gradient(circle, 
-          hsla(${hue3}, 70%, 90%, 0.5) 0%,
+          hsla(340, 70%, 90%, 0.5) 0%,
           hsla(320, 60%, 88%, 0.35) 40%,
           transparent 75%
         )`,
@@ -75,7 +71,7 @@ export default function SimpleBackground() {
         borderRadius: '50%',
         background: `radial-gradient(circle, 
           hsla(280, 70%, 90%, 0.5) 0%,
-          hsla(${hue1}, 60%, 88%, 0.3) 45%,
+          hsla(320, 60%, 88%, 0.3) 45%,
           transparent 80%
         )`,
         filter: `blur(${55 + Math.sin(time * 1.7) * 28}px)`,

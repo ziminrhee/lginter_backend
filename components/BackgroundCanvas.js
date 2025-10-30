@@ -20,7 +20,7 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
         height: '100vh',
         zIndex: 0,
         pointerEvents: 'none',
-        background: 'linear-gradient(135deg, #FFF5F7 0%, #F5E6F5 50%, #FFE8F5 100%)'
+        background: 'linear-gradient(to bottom, #FFF5F7 0%, #F5E6F5 30%, #E8D5E0 60%,rgb(125, 108, 118) 100%)'
       }} />
     )
   }
@@ -34,7 +34,7 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
       height: '100vh',
       zIndex: -10,
       pointerEvents: 'none',
-      background: 'linear-gradient(135deg, #FFF5F7 0%, #F5E6F5 50%, #FFE8F5 100%)'
+      background: 'linear-gradient(to bottom, #FFF5F7 0%, #F5E6F5 30%, #E8D5E0 60%, rgb(125, 108, 118) 100%)'
     }}>
       <Canvas
         camera={{ position: [0, 0, 6], fov: 50 }}

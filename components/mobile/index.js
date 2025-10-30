@@ -246,7 +246,7 @@ export default function MobileControls() {
     alignItems: isModal ? 'center' : 'flex-start',
     justifyContent: isModal ? 'center' : 'flex-start',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    padding: isModal ? '2rem' : 'clamp(24px,6vh,64px) clamp(16px,6vw,64px)'
+    padding: isModal ? '2rem' : 'clamp(48px,10vh,120px) clamp(32px,8vw,80px)'
   };
 
   const wrapperStyle = {
@@ -268,17 +268,29 @@ export default function MobileControls() {
       <div style={wrapperStyle}>
         {!submitted && (
           <>
-            <h1 style={{
-              fontSize: '2.25rem',
-              background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              marginBottom: '2rem',
-              fontWeight: '700',
-              textAlign: isModal ? 'center' : 'left'
-            }}>
-              만나서 반가워요! 저는 퓨론이라고 합니다.
-            </h1>
+            <div style={{ marginBottom: '2rem' }}>
+              <h1 style={{
+                fontSize: '5.5rem',
+                color: '#000000',
+                marginBottom: '0rem',
+                fontWeight: '550',
+                textAlign: isModal ? 'center' : 'left',
+                lineHeight: '1.3',
+                fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, sans-serif'
+              }}>
+                만나서<br/>반가워요!
+              </h1>
+              <p style={{
+                fontSize: '3rem',
+                color: '#000000',
+                marginTop: '1rem',
+                fontWeight: '500',
+                textAlign: isModal ? 'center' : 'left',
+                fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, sans-serif'
+              }}>
+                저는 퓨론이라고 합니다.
+              </p>
+            </div>
             
             {/* 날씨 기반 인사말 - 기능 유지하되 숨김 */}
             {weatherGreeting && (
@@ -318,11 +330,13 @@ export default function MobileControls() {
               />
             </div>
             
-            {/* 마이크 버튼만 독립적으로 표시 */}
+            {/* 마이크 버튼만 독립적으로 표시 - 하단 가운데 고정 */}
             <div style={{ 
-              display: 'flex', 
-              justifyContent: isModal ? 'center' : 'flex-start',
-              marginTop: '1rem'
+              position: 'fixed',
+              bottom: '40px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1000
             }}>
               <button
                 type="button"
@@ -350,11 +364,16 @@ export default function MobileControls() {
             </div>
             {isListening && (
               <p style={{
+                position: 'fixed',
+                bottom: '130px',
+                left: '50%',
+                transform: 'translateX(-50%)',
                 color: '#EC4899',
                 fontSize: '0.9rem',
-                marginTop: '0.5rem',
-                textAlign: isModal ? 'center' : 'left',
-                fontWeight: '500'
+                textAlign: 'center',
+                fontWeight: '500',
+                zIndex: 1000,
+                margin: 0
               }}>
                 🎤 듣고 있습니다...
               </p>
