@@ -18,6 +18,12 @@
 - Always confirm branch name before pushing
 - Never assume user wants to commit/push changes
 
+### Target Branch - CRITICAL ⚠️
+- **ALWAYS push to `lginter_frontend_hj` branch**
+- **NEVER push to `main` or `master` branch**
+- Default branch for all commits: `lginter_frontend_hj`
+- When pushing, always use: `git push origin lginter_frontend_hj`
+
 ## Project Specific Rules
 
 ### Socket.io Event Names
