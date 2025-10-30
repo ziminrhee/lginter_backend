@@ -5,7 +5,7 @@ const MobileControls = dynamic(() => import("@/components/mobile"), {
   loading: () => (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 50%, #FCEAFE 100%)',
+      background: 'transparent',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center'

@@ -4,14 +4,28 @@
   box-sizing: border-box;
 }
 
+html {
+  background: #FFF5F7;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: transparent;
+  position: relative;
 }
 
 html, body {
   overflow-x: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+#__next {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
 }
 
 code {
