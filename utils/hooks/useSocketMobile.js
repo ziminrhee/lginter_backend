@@ -1,7 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { EVENTS, createMobileUserPayload, createMobileNamePayload, createMobileVoicePayload } from "./socketEvents";
 import { SOCKET_CONFIG } from "../constants";
+
+// Inline payload creators (moved from socketEvents)
+const createBasePayload = (source, additionalData = {}) => ({
+  uuid: `uuid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  ts: Date.now(),
+  source,
+  ...additionalData
+});
+
+const createMobileUserPayload = (userId, meta = {}) => createBasePayload("mobile", { userId, meta });
+const createMobileNamePayload = (name, meta = {}) => createBasePayload("mobile", { name, userId: meta.userId, meta });
+const createMobileVoicePayload = (text, emotion, score = 0.5, meta = {}) => createBasePayload("mobile", { text, emotion, score, userId: meta.userId, meta });
 
 // mobile-side socket: init and emit actions
 export default function useSocketMobile() {
@@ -28,7 +39,7 @@ export default function useSocketMobile() {
 
     s.on("connect", () => {
       console.log("✅ Mobile socket connected:", s.id);
-      s.emit("mobile-init");
+      // mobile-init is now emitted from MobileControls component with userId
     });
 
     s.on("disconnect", () => {
@@ -53,24 +64,24 @@ export default function useSocketMobile() {
   const emitNewUser = (payload = {}) => {
     const finalPayload = payload.uuid ? payload : createMobileUserPayload(payload.userId, payload.meta);
     console.log("📱 Mobile Hook: Emitting mobile-new-user:", finalPayload);
-    socketRef.current?.emit(EVENTS.MOBILE_NEW_USER, finalPayload);
+    socketRef.current?.emit("mobile-new-user", finalPayload);
   };
 
   const emitNewName = (name, meta = {}) => {
     const payload = createMobileNamePayload(name, meta);
     console.log("📱 Mobile Hook: Emitting mobile-new-name:", payload);
-    socketRef.current?.emit(EVENTS.MOBILE_NEW_NAME, payload);
+    socketRef.current?.emit("mobile-new-name", payload);
   };
 
   const emitNewVoice = (text, emotion, score = 0.5, meta = {}) => {
     const payload = createMobileVoicePayload(text, emotion, score, meta);
     console.log("📱 Mobile Hook: Emitting mobile-new-voice:", payload);
-    socketRef.current?.emit(EVENTS.MOBILE_NEW_VOICE, payload);
+    socketRef.current?.emit("mobile-new-voice", payload);
   };
 
   const emitUserNeeds = (needs) => {
     // expects { userId, temperature, humidity, lightColor, song, priority, timestamp }
-    socketRef.current?.emit(EVENTS.MOBILE_USER_NEEDS, needs);
+    socketRef.current?.emit("mobile-user-needs", needs);
   };
 
   return { 

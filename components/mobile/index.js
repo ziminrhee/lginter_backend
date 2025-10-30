@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
-import useOpenAIAnalysis from "@/utils/hooks/useOpenAIAnalysis";
 
 // LG 퓨론 AI 로딩 애니메이션 (간단한 버전) - 메모이제이션
 const SimpleLGLoadingScreen = memo(function SimpleLGLoadingScreen() {
@@ -61,11 +60,12 @@ const SimpleLGLoadingScreen = memo(function SimpleLGLoadingScreen() {
 
 
 export default function MobileControls() {
-  const { emitNewName, emitNewVoice, socket } = useSocketMobile();
-  const { loading, recommendations, analyze, reset } = useOpenAIAnalysis(socket);
-  const [name, setName] = useState("");
+  const { emitNewVoice, socket } = useSocketMobile();
+  const [userId] = useState(() => `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [mood, setMood] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [recommendations, setRecommendations] = useState(null);
   const [weatherGreeting, setWeatherGreeting] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [showReason, setShowReason] = useState(false);
@@ -192,36 +192,72 @@ export default function MobileControls() {
     return () => clearInterval(typingInterval);
   }, [recommendations]);
 
+  // Join user-specific room on connect and listen for decisions
+  useEffect(() => {
+    if (!socket || !userId) return;
+    
+    const handleConnect = () => {
+      console.log('📱 Mobile connected, joining user room:', userId);
+      socket.emit('mobile-init', { userId });
+    };
+    
+    const handleDecision = (data) => {
+      console.log('📱 Mobile received decision:', data);
+      if (data?.params) {
+        setRecommendations({
+          temperature: data.params.temp,
+          humidity: data.params.humidity,
+          lightColor: data.params.lightColor,
+          song: data.params.music,
+          reason: data.reason || 'AI generated'
+        });
+        setLoading(false);
+      }
+    };
+    
+    // If already connected, emit init
+    if (socket.connected) {
+      handleConnect();
+    }
+    
+    socket.on('connect', handleConnect);
+    socket.on('mobile-new-decision', handleDecision);
+    
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('mobile-new-decision', handleDecision);
+    };
+  }, [socket, userId]);
+
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    if (!name.trim() || !mood.trim()) {
-      console.log('❌ Mobile: Name or mood is empty');
+    if (!mood.trim()) {
+      console.log('❌ Mobile: Mood is empty');
       return;
     }
     
-    console.log('📱 Mobile: Submitting data:', { name: name.trim(), mood: mood.trim() });
+    console.log('📱 Mobile: Submitting data:', { userId, mood: mood.trim() });
     
-    // 이름과 기분 전송
-    emitNewName(name.trim(), { mood: mood.trim() });
-    emitNewVoice(mood.trim(), mood.trim(), 0.8, { name: name.trim() });
+    // 감정 전송 (Server가 OpenAI 호출)
+    emitNewVoice(mood.trim(), mood.trim(), 0.8, { userId });
     
-    console.log('✅ Mobile: Data emitted successfully');
+    console.log('✅ Mobile: Data emitted successfully with userId:', userId);
     
-    // OpenAI 분석 시작
+    // 로딩 시작 (AI 응답 대기)
     setSubmitted(true);
-    await analyze(name.trim(), mood.trim());
-  }, [name, mood, emitNewName, emitNewVoice, analyze]);
+    setLoading(true);
+  }, [userId, mood, emitNewVoice]);
 
   const handleReset = useCallback(() => {
     setSubmitted(false);
-    reset();
-    setName("");
+    setLoading(false);
+    setRecommendations(null);
     setMood("");
     setShowReason(false);
     setTypedReason("");
     setShowHighlights(false);
     setShowResults(false);
-  }, [reset]);
+  }, []);
 
   return (
     <div style={{
@@ -286,44 +322,13 @@ export default function MobileControls() {
               opacity: 0.7,
               textAlign: 'center'
             }}>
-              이름과 기분을 입력해주세요
+              지금 기분을 말씀해주세요
             </p>
           </>
         )}
         
         {!submitted ? (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div>
-              <label style={{
-                display: 'block',
-                color: '#9333EA',
-                fontWeight: '600',
-                marginBottom: '0.5rem',
-                fontSize: '0.95rem'
-              }}>
-                이름
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="이름을 입력하세요"
-                style={{
-                  width: '100%',
-                  padding: '1rem',
-                  border: '2px solid #F3E8FF',
-                  borderRadius: '15px',
-                  fontSize: '1rem',
-                  background: 'rgba(255, 255, 255, 0.9)',
-                  outline: 'none',
-                  transition: 'all 0.3s',
-                  boxSizing: 'border-box'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#9333EA'}
-                onBlur={(e) => e.target.style.borderColor = '#F3E8FF'}
-              />
-            </div>
-            
             <div>
               <label style={{
                 display: 'block',
@@ -498,7 +503,7 @@ export default function MobileControls() {
                     marginBottom: '1rem',
                     textAlign: 'center'
                   }}>
-                    🎯 {name}님을 위한 추천
+                    🎯 AI 추천 결과
                   </h3>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>

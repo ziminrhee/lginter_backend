@@ -20,9 +20,7 @@ export default function useSocketTV1() {
 
       console.log("TV1 Hook: Initializing socket connection...");
 
-      const s = io({
-        path: SOCKET_CONFIG.PATH,
-      });
+      const s = io({ path: SOCKET_CONFIG.PATH });
 
       socketRef.current = s;
       setSocket(s);
@@ -30,6 +28,7 @@ export default function useSocketTV1() {
       s.on("connect", () => {
         console.log("✅ TV1 socket connected:", s.id);
         s.emit("tv1-init");
+        s.emit('device:heartbeat', { deviceId: s.id, type: 'tv1', version: '1.0.0', ts: Date.now() });
       });
 
       s.on("disconnect", () => {
@@ -40,6 +39,12 @@ export default function useSocketTV1() {
       s.on("new-name", (data) => {
         console.log("📺 TV1 received new-name:", data);
       });
+      // ping/reload
+      s.on('device:ping', () => { s.emit('device:heartbeat', { deviceId: s.id, type: 'tv1', version: '1.0.0', ts: Date.now() }); });
+      if (typeof window !== 'undefined') s.on('client:reload', () => window.location.reload());
+
+      const hb = setInterval(() => { if (s.connected) s.emit('device:heartbeat', { deviceId: s.id, type: 'tv1', version: '1.0.0', ts: Date.now() }); }, 15000);
+      s.on('disconnect', () => clearInterval(hb));
     })();
     
     return () => {
