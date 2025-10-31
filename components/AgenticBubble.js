@@ -1,11 +1,12 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useEffect } from 'react'
 import * as THREE from 'three'
 
 export default function AgenticBubble({ styleType = 6, cameraMode = 'default' }) {
   const material = useMemo(() => new THREE.ShaderMaterial({
     uniforms: {
       time: { value: 0 },
+      swipeProgress: { value: 0 },
       lightDir: { value: new THREE.Vector3(0.2, 0.9, 0.3).normalize() },
       ringDir: { value: new THREE.Vector3(0.08, 0.56, 0.86).normalize() },
       camY: { value: 0.0 },
@@ -28,6 +29,7 @@ export default function AgenticBubble({ styleType = 6, cameraMode = 'default' })
     fragmentShader: `
       precision highp float;
       uniform float time;
+      uniform float swipeProgress;
       uniform vec3 lightDir;
       uniform vec3 ringDir;
       uniform float camY;       // 카메라 Y 위치
@@ -53,11 +55,16 @@ export default function AgenticBubble({ styleType = 6, cameraMode = 'default' })
         vec3 N=normalize(vNormal); vec3 L=normalize(lightDir); vec2 p=vUv-0.5; float r=length(p);
         float breathing=breathingMotion(time); r=r*(1.0+breathing*0.3);
         float topness=clamp(dot(N,normalize(ringDir))*0.5+0.5,0.0,1.0);
+        
+        // 스와이프 진행도에 따라 그라데이션이 위로 퍼지도록
+        float swipeEase = swipeProgress * swipeProgress * (3.0 - 2.0 * swipeProgress); // smoothstep easing
+        float shiftedTopness = clamp(topness + swipeEase * 0.6, 0.0, 1.0); // 그라데이션을 위로 이동
+        
         vec3 colorPink=vec3(1.00,0.65,0.80); vec3 colorPeach=vec3(0.949,0.831,0.824); vec3 colorLavender=vec3(0.922,0.867,0.882); vec3 colorSky=vec3(0.847,0.851,0.902);
         vec3 base=colorPink;
-        base=mix(base,colorPeach,smoothstep(0.20,0.55,1.0-topness)*0.65);
-        base=mix(base,colorLavender,smoothstep(0.55,0.80,1.0-topness)*0.50);
-        base=mix(base,colorSky,smoothstep(0.80,0.98,1.0-topness)*0.40);
+        base=mix(base,colorPeach,smoothstep(0.20,0.55,1.0-shiftedTopness)*0.65);
+        base=mix(base,colorLavender,smoothstep(0.55,0.80,1.0-shiftedTopness)*0.50);
+        base=mix(base,colorSky,smoothstep(0.80,0.98,1.0-shiftedTopness)*0.40);
         float loopSec=10.0; float loopT=mod(time,loopSec)/loopSec; float phase=-loopT;
         float ripple1=noise(vUv*3.0+time*0.5)*0.05; float ripple2=noise(vUv*5.0+time*0.3)*0.025; float ripple3=noise(vUv*7.0+time*0.7)*0.015; float totalRipple=ripple1+ripple2+ripple3;
         float elastic1=elasticWave(topness*2.0+time*0.4,3.0,0.08); float elastic2=elasticWave(topness*3.0+time*0.6,2.0,0.04); float totalElastic=elastic1+elastic2;
@@ -91,15 +98,16 @@ export default function AgenticBubble({ styleType = 6, cameraMode = 'default' })
         lit = (lit - 0.5) * contrast + 0.5;
         lit=pow(lit,vec3(0.86)); lit*=1.0; lit=clamp(lit,0.0,1.0);
         
-        // 외곽 블러 효과 강화
-        float edgeBase = smoothstep(0.68, 0.22, r); // 더 넓은 범위의 기본 페더링
-        float edgeGlow = softBlur(r - 0.30, 0.28); // 부드러운 글로우 추가
-        float edgeFeather = edgeBase * (1.0 + edgeGlow * 0.5);
+        // 외곽 블러 효과 강화 (스와이프 진행도에 따라)
+        float blurExpand = swipeEase * 0.2; // 스와이프하면 블러 범위 확장
+        float edgeBase = smoothstep(0.68 + blurExpand, 0.22 - blurExpand, r); // 더 넓은 범위의 기본 페더링
+        float edgeGlow = softBlur(r - 0.30 + blurExpand, 0.28 + swipeEase * 0.15); // 부드러운 글로우 추가
+        float edgeFeather = edgeBase * (1.0 + edgeGlow * (0.5 + swipeEase * 0.5));
         
-        // 알파 값 조정 (외곽 블러 강화)
+        // 알파 값 조정 (외곽 블러 강화, 스와이프하면 더 투명하게)
         float alpha = 0.88 * edgeFeather + fres * 0.15;  // 기본 알파값을 높임
-        alpha = alpha * (1.0 - softBlur(r - 0.35, 0.32) * 0.3); // 외곽 블러 효과 강화
-        alpha = clamp(alpha, 0.0, 0.95);  // 최대 알파값 증가
+        alpha = alpha * (1.0 - softBlur(r - 0.35 + blurExpand, 0.32 + swipeEase * 0.2) * (0.3 + swipeEase * 0.4)); // 외곽 블러 효과 강화
+        alpha = clamp(alpha * (1.0 - swipeEase * 0.2), 0.0, 0.95);  // 스와이프하면 전체적으로 살짝 투명
         
         gl_FragColor=vec4(lit,alpha);
       }
@@ -113,6 +121,13 @@ export default function AgenticBubble({ styleType = 6, cameraMode = 'default' })
 
   useFrame((state, delta) => {
     material.uniforms.time.value += delta
+    
+    // 스와이프 진행도 업데이트
+    if (typeof window !== 'undefined') {
+      const targetProgress = window.swipeProgress || 0
+      // 부드러운 보간으로 자연스럽게 transition
+      material.uniforms.swipeProgress.value += (targetProgress - material.uniforms.swipeProgress.value) * 0.15
+    }
     
     // 카메라 애니메이션 처리 (스프링 기반, 미세 진동)
     const { camera } = state
@@ -176,6 +191,28 @@ export default function AgenticBubble({ styleType = 6, cameraMode = 'default' })
     material.uniforms.moveActive.value = cameraMode === 'move' ? 1.0 : 0.0
     material.uniforms.camZ.value = newZ
     material.uniforms.zoomActive.value = cameraMode === 'zoom' ? 1.0 : 0.0
+    
+    // 스와이프 진행도에 따라 구 위치와 스케일 조절 (부드러운 보간)
+    if (meshRef.current) {
+      const progress = material.uniforms.swipeProgress.value
+      // 부드러운 이징 적용 (easeOutCubic)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      
+      // 원래 위치에서 위로 이동 (viewport 높이의 40%까지, 더 많이 이동)
+      const originalY = meshRef.current.userData.originalY || 0
+      const moveDistance = state.viewport.height * 0.4
+      const targetY = originalY + eased * moveDistance
+      
+      // 현재 위치와 목표 위치 사이를 부드럽게 보간
+      meshRef.current.position.y += (targetY - meshRef.current.position.y) * 0.2
+      
+      // 스케일도 증가 (1.0 -> 1.4, 더 크게 퍼짐)
+      const scaleIncrease = 1.0 + eased * 0.4
+      const currentScale = meshRef.current.scale.x
+      const targetScale = scaleIncrease
+      const newScale = currentScale + (targetScale - currentScale) * 0.2
+      meshRef.current.scale.set(newScale, newScale, newScale)
+    }
   })
 
   const meshRef = useRef()
@@ -194,6 +231,13 @@ export default function AgenticBubble({ styleType = 6, cameraMode = 'default' })
   if (isMobilePage) {
     yBottom = -v.height / 2 + radius * 1.5 // 위치 확실히 위로
   }
+
+  // meshRef 초기화 시 원래 위치 저장
+  useEffect(() => {
+    if (meshRef.current) {
+      meshRef.current.userData.originalY = yBottom
+    }
+  }, [yBottom])
 
   return (
     <>

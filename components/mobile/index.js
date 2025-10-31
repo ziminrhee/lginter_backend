@@ -75,6 +75,7 @@ export default function MobileControls() {
   const [typedReason, setTypedReason] = useState("");
   const [showHighlights, setShowHighlights] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [swipeProgress, setSwipeProgress] = useState(0);
 
   // 날씨 기반 인사말 가져오기 (타임아웃 설정)
   useEffect(() => {
@@ -330,37 +331,85 @@ export default function MobileControls() {
               />
             </div>
             
-            {/* 마이크 버튼만 독립적으로 표시 - 하단 가운데 고정 */}
-            <div style={{ 
-              position: 'fixed',
-              bottom: '40px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 1000
-            }}>
-              <button
-                type="button"
-                onClick={startVoiceRecognition}
-                disabled={isListening}
-                style={{
-                  background: isListening ? '#EC4899' : 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '72px',
-                  height: '72px',
-                  cursor: isListening ? 'not-allowed' : 'pointer',
-                  fontSize: '2rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.3s',
-                  animation: isListening ? 'pulse 1s infinite' : 'none',
-                  boxShadow: '0 8px 24px rgba(147, 51, 234, 0.3)'
-                }}
-                title="음성 입력"
-              >
-                🎤
-              </button>
+            {/* Swipe 텍스트 - 위로 스와이프하면 음성 입력 */}
+            <div 
+              style={{ 
+                position: 'fixed',
+                bottom: '150px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 1000,
+                textAlign: 'center'
+              }}
+              onTouchStart={(e) => {
+                const touch = e.touches[0];
+                window.swipeStartY = touch.clientY;
+                setSwipeProgress(0);
+              }}
+              onTouchMove={(e) => {
+                if (window.swipeStartY !== undefined) {
+                  const touch = e.touches[0];
+                  const distance = window.swipeStartY - touch.clientY;
+                  const progress = Math.max(0, Math.min(1, distance / 150)); // 150px 기준으로 0~1
+                  setSwipeProgress(progress);
+                  if (typeof window !== 'undefined') {
+                    window.swipeProgress = progress;
+                  }
+                }
+              }}
+              onTouchEnd={(e) => {
+                const touch = e.changedTouches[0];
+                const swipeDistance = window.swipeStartY - touch.clientY;
+                if (swipeDistance > 50) { // 50px 이상 위로 스와이프
+                  startVoiceRecognition();
+                }
+                // 스와이프 종료 후 천천히 원래대로 (부드러운 transition)
+                setSwipeProgress(0);
+                if (typeof window !== 'undefined') {
+                  window.swipeProgress = 0;
+                }
+              }}
+              onMouseDown={(e) => {
+                window.swipeStartY = e.clientY;
+                setSwipeProgress(0);
+              }}
+              onMouseMove={(e) => {
+                if (window.swipeStartY !== undefined && e.buttons === 1) {
+                  const distance = window.swipeStartY - e.clientY;
+                  const progress = Math.max(0, Math.min(1, distance / 150));
+                  setSwipeProgress(progress);
+                  if (typeof window !== 'undefined') {
+                    window.swipeProgress = progress;
+                  }
+                }
+              }}
+              onMouseUp={(e) => {
+                const swipeDistance = window.swipeStartY - e.clientY;
+                if (swipeDistance > 50) { // 50px 이상 위로 드래그
+                  startVoiceRecognition();
+                }
+                // 스와이프 종료 후 천천히 원래대로 (부드러운 transition)
+                setSwipeProgress(0);
+                if (typeof window !== 'undefined') {
+                  window.swipeProgress = 0;
+                }
+              }}
+              onClick={() => {
+                // 클릭으로도 작동 (마우스 사용자를 위해)
+                startVoiceRecognition();
+              }}
+            >
+              <div style={{
+                fontSize: '5rem',
+                fontWeight: '500',
+                color: '#565656',
+                fontFamily: 'Pretendard',
+                animation: 'blink 1.5s ease-in-out infinite',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }}>
+                Swipe
+              </div>
             </div>
             {isListening && (
               <p style={{
