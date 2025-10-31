@@ -75,7 +75,8 @@ export default function MobileControls() {
   const [typedReason, setTypedReason] = useState("");
   const [showHighlights, setShowHighlights] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [swipeProgress, setSwipeProgress] = useState(0);
+  const [pressProgress, setPressProgress] = useState(0);
+  const [pressTimer, setPressTimer] = useState(null);
 
   // 날씨 기반 인사말 가져오기 (타임아웃 설정)
   useEffect(() => {
@@ -104,6 +105,37 @@ export default function MobileControls() {
       controller.abort();
     };
   }, []);
+
+  // 꾹 누르기 핸들러
+  const handlePressStart = useCallback(() => {
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 0.02; // 0.02씩 증가 (50ms * 50 = 2.5초)
+      if (progress >= 1) {
+        progress = 1;
+        clearInterval(interval);
+        // 1초 이상 누르면 음성 인식 시작
+        startVoiceRecognition();
+      }
+      setPressProgress(progress);
+      if (typeof window !== 'undefined') {
+        window.pressProgress = progress;
+      }
+    }, 50);
+    setPressTimer(interval);
+  }, []);
+
+  const handlePressEnd = useCallback(() => {
+    if (pressTimer) {
+      clearInterval(pressTimer);
+      setPressTimer(null);
+    }
+    // 천천히 0으로 돌아가기
+    setPressProgress(0);
+    if (typeof window !== 'undefined') {
+      window.pressProgress = 0;
+    }
+  }, [pressTimer]);
 
   // 음성 인식 기능 (메모이제이션)
   const startVoiceRecognition = useCallback(() => {
@@ -240,14 +272,20 @@ export default function MobileControls() {
   }, [reset]);
 
   const containerStyle = {
-    minHeight: '100vh',
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    overflow: 'hidden',
     background: 'transparent',
     display: 'flex',
     flexDirection: 'column',
     alignItems: isModal ? 'center' : 'flex-start',
     justifyContent: isModal ? 'center' : 'flex-start',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    padding: isModal ? '2rem' : 'clamp(48px,10vh,120px) clamp(32px,8vw,80px)'
+    padding: isModal ? '2rem' : 'clamp(48px,10vh,120px) clamp(32px,8vw,80px)',
+    overscrollBehavior: 'none'
   };
 
   const wrapperStyle = {
@@ -263,6 +301,21 @@ export default function MobileControls() {
     flexDirection: 'column',
     alignItems: isModal ? 'center' : 'flex-start'
   };
+
+  // 모바일 페이지에서 스크롤 락 (마운트/언마운트 시 적용/해제)
+  useEffect(() => {
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevOverscroll = document.documentElement.style.overscrollBehavior;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.overscrollBehavior = 'none';
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.documentElement.style.overscrollBehavior = prevOverscroll;
+    };
+  }, []);
 
   return (
     <div style={containerStyle}>
@@ -331,7 +384,7 @@ export default function MobileControls() {
               />
             </div>
             
-            {/* Swipe 텍스트 - 위로 스와이프하면 음성 입력 */}
+            {/* 꾹 누르기 텍스트 - 꾹 누르면 음성 입력 */}
             <div 
               style={{ 
                 position: 'fixed',
@@ -341,63 +394,11 @@ export default function MobileControls() {
                 zIndex: 1000,
                 textAlign: 'center'
               }}
-              onTouchStart={(e) => {
-                const touch = e.touches[0];
-                window.swipeStartY = touch.clientY;
-                setSwipeProgress(0);
-              }}
-              onTouchMove={(e) => {
-                if (window.swipeStartY !== undefined) {
-                  const touch = e.touches[0];
-                  const distance = window.swipeStartY - touch.clientY;
-                  const progress = Math.max(0, Math.min(1, distance / 150)); // 150px 기준으로 0~1
-                  setSwipeProgress(progress);
-                  if (typeof window !== 'undefined') {
-                    window.swipeProgress = progress;
-                  }
-                }
-              }}
-              onTouchEnd={(e) => {
-                const touch = e.changedTouches[0];
-                const swipeDistance = window.swipeStartY - touch.clientY;
-                if (swipeDistance > 50) { // 50px 이상 위로 스와이프
-                  startVoiceRecognition();
-                }
-                // 스와이프 종료 후 천천히 원래대로 (부드러운 transition)
-                setSwipeProgress(0);
-                if (typeof window !== 'undefined') {
-                  window.swipeProgress = 0;
-                }
-              }}
-              onMouseDown={(e) => {
-                window.swipeStartY = e.clientY;
-                setSwipeProgress(0);
-              }}
-              onMouseMove={(e) => {
-                if (window.swipeStartY !== undefined && e.buttons === 1) {
-                  const distance = window.swipeStartY - e.clientY;
-                  const progress = Math.max(0, Math.min(1, distance / 150));
-                  setSwipeProgress(progress);
-                  if (typeof window !== 'undefined') {
-                    window.swipeProgress = progress;
-                  }
-                }
-              }}
-              onMouseUp={(e) => {
-                const swipeDistance = window.swipeStartY - e.clientY;
-                if (swipeDistance > 50) { // 50px 이상 위로 드래그
-                  startVoiceRecognition();
-                }
-                // 스와이프 종료 후 천천히 원래대로 (부드러운 transition)
-                setSwipeProgress(0);
-                if (typeof window !== 'undefined') {
-                  window.swipeProgress = 0;
-                }
-              }}
-              onClick={() => {
-                // 클릭으로도 작동 (마우스 사용자를 위해)
-                startVoiceRecognition();
-              }}
+              onTouchStart={handlePressStart}
+              onTouchEnd={handlePressEnd}
+              onMouseDown={handlePressStart}
+              onMouseUp={handlePressEnd}
+              onMouseLeave={handlePressEnd}
             >
               <div style={{
                 fontSize: '5rem',
@@ -406,10 +407,21 @@ export default function MobileControls() {
                 fontFamily: 'Pretendard',
                 animation: 'blink 1.5s ease-in-out infinite',
                 cursor: 'pointer',
-                userSelect: 'none'
+                userSelect: 'none',
+                opacity: pressProgress > 0 ? 0.5 + pressProgress * 0.5 : 1
               }}>
-                Swipe
+                Press
               </div>
+              {pressProgress > 0 && (
+                <div style={{
+                  marginTop: '1rem',
+                  fontSize: 'clamp(1.6rem, 6.5vw, 2.8rem)',
+                  color: '#9333EA',
+                  fontWeight: '600'
+                }}>
+                  {Math.round(pressProgress * 100)}%
+                </div>
+              )}
             </div>
             {isListening && (
               <p style={{
