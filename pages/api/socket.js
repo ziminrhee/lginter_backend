@@ -1,35 +1,66 @@
-// Minimal Socket.IO server for Next.js API route (migrated from external server.js)
+import { Server } from "socket.io";
+import {
+  applyControllerDecision,
+  getFlags,
+  getState,
+  recordMobileFeeling,
+} from "@/src/brain/mutations.js";
+import { deriveDeviceEffects } from "@/src/controller/selectors.js";
+import {
+  addStatusListener,
+  enqueueDeviceActions,
+  getStatus,
+} from "@/src/services/deviceQueue.js";
 
 export const config = {
   api: { bodyParser: false },
 };
 
+const queueListenerState = { attached: false };
+
+function broadcastControllerStatus(io) {
+  const state = getState();
+  const status = getStatus();
+  io.to("controller").emit("controller-device-status", {
+    queue: status.queue,
+    history: status.history,
+    lastError: status.lastError,
+    processing: status.processing,
+    aggregateEnv: state.aggregate.env,
+    lastDecision: state.lastDecision,
+    lastFeeling: state.lastFeeling,
+    flags: state.flags,
+  });
+}
+
 export default function handler(req, res) {
   if (res.socket.server.io) {
-    // Socket already initialized
     res.end();
     return;
   }
 
-  const { Server } = require("socket.io");
-
   const io = new Server(res.socket.server, {
     path: "/api/socket",
     addTrailingSlash: false,
-    // transports: ["websocket", "polling"],
   });
 
-  // 사용자 니즈 관리 시스템 (migrated from server.js)
-  const userNeeds = new Map(); // userId -> { temperature, humidity, lightColor, song, priority, timestamp }
+  res.socket.server.io = io;
+
+  if (!queueListenerState.attached) {
+    addStatusListener(() => broadcastControllerStatus(io));
+    queueListenerState.attached = true;
+  }
+
+  const userNeeds = new Map();
   const deviceAssignments = {
-    temperature: null, // { userId, value, priority, timestamp }
+    temperature: null,
     humidity: null,
     light: null,
     music: null,
   };
 
-  const ROTATION_INTERVAL = 15000; // 15초
-  let rotationTimers = {
+  const ROTATION_INTERVAL = 15000;
+  const rotationTimers = {
     temperature: null,
     humidity: null,
     light: null,
@@ -40,7 +71,7 @@ export default function handler(req, res) {
     console.log("🔄 assignDevices() called");
     const users = Array.from(userNeeds.entries());
     console.log(`👥 Total users in userNeeds: ${users.length}`);
-    
+
     if (users.length === 0) {
       console.log("⚠️ No users in userNeeds, returning");
       return;
@@ -81,7 +112,6 @@ export default function handler(req, res) {
 
     Object.assign(deviceAssignments, newAssignments);
 
-    // SW1으로 온도/습도 전송
     if (deviceAssignments.temperature || deviceAssignments.humidity) {
       const sw1Data = {
         device: "sw1",
@@ -97,7 +127,6 @@ export default function handler(req, res) {
       io.emit("device-decision", sw1Data);
     }
 
-    // SW2로 조명/음악 전송
     if (deviceAssignments.light || deviceAssignments.music) {
       const sw2Data = {
         device: "sw2",
@@ -113,7 +142,6 @@ export default function handler(req, res) {
       io.emit("device-decision", sw2Data);
     }
 
-    // 15초 후 자동 재할당 타이머 설정
     Object.keys(rotationTimers).forEach((key) => {
       if (rotationTimers[key]) clearTimeout(rotationTimers[key]);
       rotationTimers[key] = setTimeout(() => {
@@ -125,21 +153,22 @@ export default function handler(req, res) {
 
   io.on("connection", (socket) => {
     console.log(`✅ Socket connected: ${socket.id}`);
-    // --- Init & Rooms ---
-    socket.on("mobile-init", (p) => {
+
+    socket.on("mobile-init", (payload) => {
       socket.join("mobile");
-      if (p?.userId) socket.join(`user:${p.userId}`);
+      if (payload?.userId) socket.join(`user:${payload.userId}`);
     });
     socket.on("livingroom-init", () => socket.join("livingroom"));
     socket.on("entrance-init", () => socket.join("entrance"));
-    socket.on("controller-init", () => socket.join("controller"));
+    socket.on("controller-init", () => {
+      socket.join("controller");
+      broadcastControllerStatus(io);
+    });
 
-    // Mobile events - forward to Controller; entrance mirrors for user/name
     socket.on("mobile-new-name", (data) => {
       console.log("📱 Server received mobile-new-name:", data);
       io.to("controller").emit("mobile-new-name", data);
       io.to("entrance").emit("entrance-new-name", { userId: data.userId, name: data.name });
-      // legacy shim
       io.emit("new-name", data);
     });
 
@@ -147,38 +176,64 @@ export default function handler(req, res) {
       console.log("📱 Server received mobile-new-user:", data);
       io.to("controller").emit("mobile-new-user", data);
       io.to("entrance").emit("entrance-new-user", { userId: data.userId, name: data.name });
-      // legacy shim
       io.emit("new-user", data);
     });
 
     socket.on("mobile-new-voice", (data) => {
       console.log("📱 Server received mobile-new-voice:", data);
       io.to("controller").emit("mobile-new-voice", data);
-      // legacy shim for current UIs
       io.emit("new-voice-mobile", data);
+
+      const updatedState = recordMobileFeeling({
+        userId: data.userId,
+        text: data.text || data.message,
+        emotion: data.emotion,
+      });
+      broadcastControllerStatus(io);
+
+      const flags = getFlags();
+      if (!flags.emergencyStop) {
+        const actions = deriveDeviceEffects({
+          decision: updatedState.lastDecision,
+          state: updatedState,
+        });
+        if (actions.length) {
+          enqueueDeviceActions(actions, {
+            origin: updatedState.lastFeeling?.keyword
+              ? `feeling:${updatedState.lastFeeling.keyword}`
+              : "feeling",
+          });
+        }
+      }
     });
 
-
-    // Controller → LivingRoom + Mobile(user)
     socket.on("controller-new-decision", (data) => {
       console.log("🎮 Server received controller-new-decision:", data);
-      // broadcast to livingroom
       io.to("livingroom").emit("device-new-decision", { env: data.params, mergedFrom: [data.userId] });
-      // targeted to mobile user
       io.to(`user:${data.userId}`).emit("mobile-new-decision", { userId: data.userId, params: data.params, reason: data.reason });
-      // legacy shim for current UIs
       io.emit("device-decision", { device: "sw2", lightColor: data.params?.lightColor, song: data.params?.music });
       io.emit("device-decision", { device: "sw1", temperature: data.params?.temp, humidity: data.params?.humidity });
+
+      const updatedState = applyControllerDecision(data);
+      broadcastControllerStatus(io);
+
+      const flags = getFlags();
+      if (!flags.emergencyStop) {
+        const actions = deriveDeviceEffects({ decision: data, state: updatedState });
+        if (actions.length) {
+          enqueueDeviceActions(actions, {
+            origin: data.reason ? `decision:${data.reason}` : "decision",
+          });
+        }
+      }
     });
 
     socket.on("controller-new-voice", (data) => {
       console.log("🎮 Server received controller-new-voice:", data);
       io.to("livingroom").emit("device-new-voice", data);
-      // legacy shim
       io.emit("new-voice-device", data);
     });
 
-    // 사용자 니즈 수신 및 우선순위 계산
     socket.on("mobile-user-needs", (data) => {
       console.log("🎯 Server received mobile-user-needs:", data);
       userNeeds.set(data.userId, {
@@ -198,6 +253,5 @@ export default function handler(req, res) {
     });
   });
 
-  res.socket.server.io = io;
   res.end();
 }

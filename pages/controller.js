@@ -13,6 +13,16 @@ export default function ControllerPage() {
   const [music, setMusic] = useState("Relax");
   const [reason, setReason] = useState("");
   const [lastDecision, setLastDecision] = useState(null);
+  const [deviceStatus, setDeviceStatus] = useState({
+    queue: [],
+    history: [],
+    lastError: null,
+    processing: false,
+    aggregateEnv: {},
+    lastFeeling: null,
+  });
+  const [testResult, setTestResult] = useState(null);
+  const [testLoading, setTestLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -25,6 +35,7 @@ export default function ControllerPage() {
       });
       s.on("disconnect", () => setStatus("disconnected"));
       s.on("device-new-decision", (p) => setLastDecision(p));
+      s.on("controller-device-status", (payload) => setDeviceStatus(payload));
       return () => { s.close(); };
     })();
     return () => { if (socketRef.current) socketRef.current.close(); };
@@ -42,6 +53,27 @@ export default function ControllerPage() {
       params: { temp: Number(temp), humidity: Number(humidity), lightColor, music },
       reason,
     });
+  };
+
+  const triggerDeviceTest = async (kind, body) => {
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const res = await fetch(`/api/devices/${kind}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.error || "Request failed");
+      }
+      setTestResult({ kind, body, ok: true, response: json });
+    } catch (error) {
+      setTestResult({ kind, body, ok: false, error: error.message });
+    } finally {
+      setTestLoading(false);
+    }
   };
 
   return (
@@ -74,6 +106,57 @@ export default function ControllerPage() {
         <div style={{ border: '1px solid #eee', borderRadius: 12, padding: 16 }}>
           <h3>Last decision (from server)</h3>
           <pre style={{ whiteSpace:'pre-wrap' }}>{JSON.stringify(lastDecision, null, 2)}</pre>
+        </div>
+        <div style={{ gridColumn: '1 / span 2', border: '1px solid #eee', borderRadius: 12, padding: 16 }}>
+          <h3>Device Actions</h3>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            <button disabled={testLoading} onClick={() => triggerDeviceTest("airconditioner", { power: "on" })}>AC Power On</button>
+            <button disabled={testLoading} onClick={() => triggerDeviceTest("airconditioner", { mode: "AIR_DRY" })}>AC AIR_DRY</button>
+            <button disabled={testLoading} onClick={() => triggerDeviceTest("airconditioner", { temperature: 24 })}>AC Temp 24</button>
+            <button disabled={testLoading} onClick={() => triggerDeviceTest("airpurifierfan", { power: "on" })}>AP Power On</button>
+            <button disabled={testLoading} onClick={() => triggerDeviceTest("airpurifierfan", { mode: "NATURE_CLEAN" })}>AP NATURE_CLEAN</button>
+          </div>
+          {testLoading && <p>Testing device command...</p>}
+          {testResult && (
+            <pre style={{ background: '#f9f9f9', padding: 12, borderRadius: 8 }}>
+              {JSON.stringify(testResult, null, 2)}
+            </pre>
+          )}
+          <div style={{ marginTop: 16 }}>
+            <h4>Aggregate Environment</h4>
+            <pre style={{ background: '#fafafa', padding: 12, borderRadius: 8 }}>
+              {JSON.stringify(deviceStatus.aggregateEnv || {}, null, 2)}
+            </pre>
+          </div>
+          <div style={{ marginTop: 16, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            <div>
+              <strong>Queue Length:</strong> {deviceStatus.queue?.length || 0}
+            </div>
+            <div>
+              <strong>Processing:</strong> {deviceStatus.processing ? 'Yes' : 'No'}
+            </div>
+            {deviceStatus.lastError && (
+              <div style={{ color: 'red' }}>
+                <strong>Last Error:</strong> {deviceStatus.lastError.message}
+              </div>
+            )}
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <h4>Recent Commands</h4>
+            <ul style={{ maxHeight: 200, overflowY: 'auto', paddingLeft: 16 }}>
+              {(deviceStatus.history || []).slice(0, 8).map((item) => (
+                <li key={item.id} style={{ marginBottom: 8 }}>
+                  <div>
+                    <strong>{item.device}</strong> {JSON.stringify(item.payload)}
+                  </div>
+                  <div style={{ fontSize: 12, color: item.status === 'success' ? 'green' : 'red' }}>
+                    {item.status} • {new Date(item.ts).toLocaleTimeString()} • {item.origin}
+                    {item.error ? ` • ${item.error}` : ''}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </div>
