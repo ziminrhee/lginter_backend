@@ -43,8 +43,8 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
   const pressEase = pressProgress * pressProgress * (3.0 - 2.0 * pressProgress)
   
   // 모바일 페이지에서 크기와 위치 조정
-  const blobSize = isMobilePage ? 1000 : 559
-  const blobTop = isMobilePage ? '58%' : '50%'
+  const blobSize = isMobilePage ? 350 : 150
+  const blobTop = isMobilePage ? '60%' : '50%'
   
   // 꾹 누를 때 블러와 밝기 증가 (위로 이동 제거)
   const blurIncrease = pressEase * 50 // 블러 최대 50px 증가

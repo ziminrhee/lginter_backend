@@ -284,7 +284,10 @@ export default function MobileControls() {
     alignItems: isModal ? 'center' : 'flex-start',
     justifyContent: isModal ? 'center' : 'flex-start',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    padding: isModal ? '2rem' : 'clamp(48px,10vh,120px) clamp(32px,8vw,80px)',
+    paddingTop: isModal ? '2rem' : 'calc(env(safe-area-inset-top, 0px) + clamp(96px, 14vh, 180px))',
+    paddingRight: isModal ? '2rem' : 'clamp(28px,7vw,72px)',
+    paddingBottom: isModal ? '2rem' : 'clamp(40px,8vh,96px)',
+    paddingLeft: isModal ? '2rem' : 'clamp(28px,7vw,72px)',
     overscrollBehavior: 'none'
   };
 
@@ -322,22 +325,22 @@ export default function MobileControls() {
       <div style={wrapperStyle}>
         {!submitted && (
           <>
-            <div style={{ marginBottom: '2rem' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
               <h1 style={{
-                fontSize: '5.5rem',
+                fontSize: '2.5rem',
                 color: '#000000',
-                marginBottom: '0rem',
+                marginBottom: '0.25rem',
                 fontWeight: '550',
                 textAlign: isModal ? 'center' : 'left',
-                lineHeight: '1.3',
+                lineHeight: 1.22,
                 fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, sans-serif'
               }}>
                 만나서<br/>반가워요!
               </h1>
               <p style={{
-                fontSize: '3rem',
-                color: '#000000',
-                marginTop: '1rem',
+                fontSize: '1.3rem',
+                color: '#818181',
+                marginTop: '0.6rem',
                 fontWeight: '500',
                 textAlign: isModal ? 'center' : 'left',
                 fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, sans-serif'
@@ -388,7 +391,7 @@ export default function MobileControls() {
             <div 
               style={{ 
                 position: 'fixed',
-                bottom: '150px',
+                bottom: 'clamp(88px, 18vh, 144px)',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 zIndex: 1000,
@@ -401,7 +404,7 @@ export default function MobileControls() {
               onMouseLeave={handlePressEnd}
             >
               <div style={{
-                fontSize: '5rem',
+                fontSize: 'clamp(2.6rem, 8.5vw, 3.4rem)',
                 fontWeight: '500',
                 color: '#565656',
                 fontFamily: 'Pretendard',
