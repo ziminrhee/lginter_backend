@@ -21,6 +21,7 @@ export default function MobileControls() {
   const [name, setName] = useState("");
   const [mood, setMood] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [showPress, setShowPress] = useState(false);
   const weatherGreeting = useWeatherGreeting();
 
   const { isListening, startVoiceRecognition } = useSpeechRecognition({
@@ -65,6 +66,7 @@ export default function MobileControls() {
     reset();
     setName("");
     setMood("");
+    setShowPress(false);
     setShowReason(false);
     setTypedReason("");
     setShowHighlights(false);
@@ -125,7 +127,7 @@ export default function MobileControls() {
       <div style={wrapperStyle}>
         {!submitted && (
           <>
-            <HeroText isModal={isModal} />
+            <HeroText isModal={isModal} onFinalPhase={() => setShowPress(true)} />
             
             {/* 날씨 기반 인사말 - 기능 유지하되 숨김 */}
             {weatherGreeting && (
@@ -150,11 +152,13 @@ export default function MobileControls() {
               onMoodChange={setMood}
             />
             
-            <PressOverlay
-              pressProgress={pressProgress}
-              onPressStart={handlePressStart}
-              onPressEnd={handlePressEnd}
-            />
+            {showPress && (
+              <PressOverlay
+                pressProgress={pressProgress}
+                onPressStart={handlePressStart}
+                onPressEnd={handlePressEnd}
+              />
+            )}
             {isListening && (
               <p style={{
                 position: 'fixed',
