@@ -1,65 +1,17 @@
-import { useState, useEffect, useCallback, useMemo, memo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
 import useOpenAIAnalysis from "@/utils/hooks/useOpenAIAnalysis";
-
-// LG 퓨론 AI 로딩 애니메이션 (간단한 버전) - 메모이제이션
-const SimpleLGLoadingScreen = memo(function SimpleLGLoadingScreen() {
-  return (
-    <div style={{
-      textAlign: 'center',
-      padding: '3rem 2rem',
-      background: 'linear-gradient(135deg, #F3E8FF 0%, #FCEAFE 100%)',
-      borderRadius: '15px'
-    }}>
-      {/* LG ThinQ AI 로딩 애니메이션 (심플) */}
-      <div style={{
-        position: 'relative',
-        width: '80px',
-        height: '80px',
-        margin: '0 auto 1.5rem'
-      }}>
-        <div style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          border: '4px solid #F3E8FF',
-          borderTop: '4px solid #9333EA',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }} />
-        <div style={{
-          position: 'absolute',
-          width: '60px',
-          height: '60px',
-          top: '10px',
-          left: '10px',
-          border: '3px solid #F3E8FF',
-          borderBottom: '3px solid #EC4899',
-          borderRadius: '50%',
-          animation: 'spin 1.5s linear infinite reverse'
-        }} />
-      </div>
-      <p style={{
-        color: '#9333EA',
-        fontSize: '1.2rem',
-        fontWeight: '700',
-        marginBottom: '0.5rem',
-        animation: 'fadeInOut 2s ease-in-out infinite'
-      }}>
-        LG ThinQ AI 분석 중...
-      </p>
-      <p style={{
-        color: '#9333EA',
-        fontSize: '0.9rem',
-        opacity: 0.7
-      }}>
-        당신의 감정에 맞는 최적의 환경을 찾고 있어요 💭
-      </p>
-    </div>
-  );
-});
-
+import LoadingScreen from "./sections/LoadingScreen";
+import HeroText from "./sections/HeroText";
+import PressOverlay from "./sections/PressOverlay";
+import HiddenForm from "./sections/HiddenForm";
+import BlobControls from "./sections/BlobControls";
+import useLongPressProgress from "./hooks/useLongPressProgress";
+import useSpeechRecognition from "./hooks/useSpeechRecognition";
+import useWeatherGreeting from "./hooks/useWeatherGreeting";
+import useTypewriter from "./hooks/useTypewriter";
+import { fonts, spacing } from "./styles/tokens";
 
 export default function MobileControls() {
   const router = useRouter();
@@ -69,176 +21,24 @@ export default function MobileControls() {
   const [name, setName] = useState("");
   const [mood, setMood] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [weatherGreeting, setWeatherGreeting] = useState(null);
-  const [isListening, setIsListening] = useState(false);
-  const [showReason, setShowReason] = useState(false);
-  const [typedReason, setTypedReason] = useState("");
-  const [showHighlights, setShowHighlights] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const [pressProgress, setPressProgress] = useState(0);
-  const [pressTimer, setPressTimer] = useState(null);
+  const weatherGreeting = useWeatherGreeting();
 
-  // 날씨 기반 인사말 가져오기 (타임아웃 설정)
-  useEffect(() => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3초 타임아웃
-    
-    fetch('/api/weather', { signal: controller.signal })
-      .then(res => res.json())
-      .then(data => {
-        clearTimeout(timeoutId);
-        console.log('🌤️ Weather greeting:', data);
-        setWeatherGreeting(data);
-      })
-      .catch(err => {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-          console.log('⏱️ Weather API timeout - continuing without weather');
-        } else {
-          console.error('Weather API error:', err);
-        }
-        // 에러 발생시에도 계속 진행 (날씨 없이)
-      });
-    
-    return () => {
-      clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, []);
-
-  // 꾹 누르기 핸들러
-  const handlePressStart = useCallback(() => {
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 0.02; // 0.02씩 증가 (50ms * 50 = 2.5초)
-      if (progress >= 1) {
-        progress = 1;
-        clearInterval(interval);
-        // 1초 이상 누르면 음성 인식 시작
-        startVoiceRecognition();
-      }
-      setPressProgress(progress);
-      if (typeof window !== 'undefined') {
-        window.pressProgress = progress;
-      }
-    }, 50);
-    setPressTimer(interval);
-  }, []);
-
-  const handlePressEnd = useCallback(() => {
-    if (pressTimer) {
-      clearInterval(pressTimer);
-      setPressTimer(null);
+  const { isListening, startVoiceRecognition } = useSpeechRecognition({
+    onResult: ({ transcript }) => {
+      setMood(transcript);
+      if (!name.trim()) setName('사용자');
     }
-    // 천천히 0으로 돌아가기
-    setPressProgress(0);
-    if (typeof window !== 'undefined') {
-      window.pressProgress = 0;
-    }
-  }, [pressTimer]);
+  });
 
-  // 음성 인식 기능 (메모이제이션)
-  const startVoiceRecognition = useCallback(() => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('❌ 음성 인식을 지원하지 않는 브라우저입니다.\n\n직접 입력해주세요. 🖊️');
-      return;
-    }
+  const { pressProgress, handlePressStart, handlePressEnd } = useLongPressProgress({
+    onCompleted: () => startVoiceRecognition()
+  });
 
-    try {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'ko-KR';
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
+  const { typedReason, showReason, showHighlights, showResults } = useTypewriter(
+    recommendations && recommendations.reason ? recommendations.reason : null
+  );
 
-      recognition.onstart = () => {
-        setIsListening(true);
-        console.log('🎤 음성 인식 시작됨');
-      };
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        const confidence = event.results[0][0].confidence;
-        setMood(transcript);
-        // 음성 인식 완료 시 이름도 자동 설정 (퓨론 사용자로)
-        if (!name.trim()) {
-          setName('사용자');
-        }
-        console.log('✅ 인식 성공:', transcript, '(정확도:', Math.round(confidence * 100) + '%)');
-        
-        // 음성 인식 완료 후 자동 제출
-        setTimeout(() => {
-          const submitBtn = document.querySelector('button[type="submit"]');
-          if (submitBtn) {
-            submitBtn.click();
-          }
-        }, 500);
-      };
-
-      recognition.onerror = (event) => {
-        console.error('❌ 음성 인식 오류:', event.error);
-        setIsListening(false);
-        
-        let errorMsg = '';
-        if (event.error === 'no-speech') {
-          errorMsg = '음성이 감지되지 않았습니다.\n\n직접 입력해주세요. 🖊️';
-        } else if (event.error === 'not-allowed') {
-          errorMsg = '⚠️ 마이크 권한이 필요합니다.\n\n직접 입력하거나, 브라우저 설정에서 마이크 권한을 허용해주세요.\n\n💡 팁: HTTP 연결에서는 보안상 마이크가 제한될 수 있습니다.';
-        } else if (event.error === 'network') {
-          errorMsg = '네트워크 오류가 발생했습니다.\n\n직접 입력해주세요. 🖊️';
-        } else {
-          errorMsg = '음성 인식이 불가능합니다.\n\n직접 입력해주세요. 🖊️';
-        }
-        
-        // 에러 발생 시에도 입력창에 포커스
-        if (errorMsg) {
-          alert(errorMsg);
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-        console.log('🎤 음성 인식 종료');
-      };
-
-      console.log('🎤 음성 인식 시작 시도...');
-      recognition.start();
-    } catch (error) {
-      console.error('음성 인식 초기화 실패:', error);
-      alert('음성 인식을 시작할 수 없습니다.\n\n직접 입력해주세요. 🖊️');
-      setIsListening(false);
-    }
-  }, []);
-
-  // 타이핑 애니메이션 효과 (최적화)
-  useEffect(() => {
-    if (!recommendations || !recommendations.reason) return;
-    
-    setShowReason(true);
-    const text = recommendations.reason;
-    let index = 0;
-    
-    const typingInterval = setInterval(() => {
-      if (index < text.length) {
-        // 2글자씩 업데이트하여 렌더링 횟수 절반으로 감소
-        setTypedReason(text.slice(0, index + 2));
-        index += 2;
-      } else {
-        clearInterval(typingInterval);
-        // 타이핑 완료 후 0.5초 대기 후 하이라이트 표시
-        setTimeout(() => {
-          setShowHighlights(true);
-          // 하이라이트 4초 후 결과 표시 (6초에서 4초로 단축)
-          setTimeout(() => {
-            setShowResults(true);
-          }, 4000);
-        }, 500);
-      }
-    }, 40); // 40ms마다 2글자씩 (전체 속도는 비슷하지만 렌더링 횟수 절반)
-
-    return () => clearInterval(typingInterval);
-  }, [recommendations]);
+  // (Typewriter, weather, press handlers moved to hooks above)
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -283,11 +83,11 @@ export default function MobileControls() {
     flexDirection: 'column',
     alignItems: isModal ? 'center' : 'flex-start',
     justifyContent: isModal ? 'center' : 'flex-start',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    paddingTop: isModal ? '2rem' : 'calc(env(safe-area-inset-top, 0px) + clamp(96px, 14vh, 180px))',
-    paddingRight: isModal ? '2rem' : 'clamp(28px,7vw,72px)',
-    paddingBottom: isModal ? '2rem' : 'clamp(40px,8vh,96px)',
-    paddingLeft: isModal ? '2rem' : 'clamp(28px,7vw,72px)',
+    fontFamily: fonts.system,
+    paddingTop: isModal ? '2rem' : spacing.container.paddingTop,
+    paddingRight: isModal ? '2rem' : spacing.container.paddingRight,
+    paddingBottom: isModal ? '2rem' : spacing.container.paddingBottom,
+    paddingLeft: isModal ? '2rem' : spacing.container.paddingLeft,
     overscrollBehavior: 'none'
   };
 
@@ -325,29 +125,7 @@ export default function MobileControls() {
       <div style={wrapperStyle}>
         {!submitted && (
           <>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h1 style={{
-                fontSize: '2.5rem',
-                color: '#000000',
-                marginBottom: '0.25rem',
-                fontWeight: '550',
-                textAlign: isModal ? 'center' : 'left',
-                lineHeight: 1.22,
-                fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, sans-serif'
-              }}>
-                만나서<br/>반가워요!
-              </h1>
-              <p style={{
-                fontSize: '1.3rem',
-                color: '#818181',
-                marginTop: '0.6rem',
-                fontWeight: '500',
-                textAlign: isModal ? 'center' : 'left',
-                fontFamily: 'Pretendard, -apple-system, BlinkMacSystemFont, sans-serif'
-              }}>
-                저는 퓨론이라고 합니다.
-              </p>
-            </div>
+            <HeroText isModal={isModal} />
             
             {/* 날씨 기반 인사말 - 기능 유지하되 숨김 */}
             {weatherGreeting && (
@@ -365,67 +143,18 @@ export default function MobileControls() {
         
         {!submitted ? (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
-            {/* 입력 필드들 - 기능 유지하되 숨김 */}
-            <div style={{ display: 'none' }}>
-              <label>이름</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="이름을 입력하세요"
-              />
-            </div>
+            <HiddenForm
+              name={name}
+              onNameChange={setName}
+              mood={mood}
+              onMoodChange={setMood}
+            />
             
-            {/* 기분 입력 필드 - 기능 유지하되 숨김 */}
-            <div style={{ display: 'none' }}>
-              <label>지금 기분</label>
-              <input
-                type="text"
-                value={mood}
-                onChange={(e) => setMood(e.target.value)}
-                placeholder="예: 행복해요, 설레요, 편안해요"
-              />
-            </div>
-            
-            {/* 꾹 누르기 텍스트 - 꾹 누르면 음성 입력 */}
-            <div 
-              style={{ 
-                position: 'fixed',
-                bottom: 'clamp(88px, 18vh, 144px)',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                zIndex: 1000,
-                textAlign: 'center'
-              }}
-              onTouchStart={handlePressStart}
-              onTouchEnd={handlePressEnd}
-              onMouseDown={handlePressStart}
-              onMouseUp={handlePressEnd}
-              onMouseLeave={handlePressEnd}
-            >
-              <div style={{
-                fontSize: 'clamp(2.6rem, 8.5vw, 3.4rem)',
-                fontWeight: '500',
-                color: '#565656',
-                fontFamily: 'Pretendard',
-                animation: 'blink 1.5s ease-in-out infinite',
-                cursor: 'pointer',
-                userSelect: 'none',
-                opacity: pressProgress > 0 ? 0.5 + pressProgress * 0.5 : 1
-              }}>
-                Press
-              </div>
-              {pressProgress > 0 && (
-                <div style={{
-                  marginTop: '1rem',
-                  fontSize: 'clamp(1.6rem, 6.5vw, 2.8rem)',
-                  color: '#9333EA',
-                  fontWeight: '600'
-                }}>
-                  {Math.round(pressProgress * 100)}%
-                </div>
-              )}
-            </div>
+            <PressOverlay
+              pressProgress={pressProgress}
+              onPressStart={handlePressStart}
+              onPressEnd={handlePressEnd}
+            />
             {isListening && (
               <p style={{
                 position: 'fixed',
@@ -442,19 +171,9 @@ export default function MobileControls() {
                 🎤 듣고 있습니다...
               </p>
             )}
-            
-            {/* 제출 버튼 - 기능 유지하되 숨김 (음성으로 자동 제출됨) */}
-            <button
-              type="submit"
-              style={{
-                display: 'none'
-              }}
-            >
-              입력 완료
-            </button>
           </form>
         ) : loading ? (
-          <SimpleLGLoadingScreen />
+          <LoadingScreen />
         ) : recommendations && !showReason ? (
           <div style={{
             textAlign: 'center',
@@ -650,6 +369,7 @@ export default function MobileControls() {
         )}
         {/* Note: moved keyframe animations to globals.css to avoid JSX parsing issues */}
       </div>
+      <BlobControls />
     </div>
   );
 }
