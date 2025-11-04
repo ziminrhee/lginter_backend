@@ -30,9 +30,19 @@ export default function SW1Controls() {
 
     socket.on('device-decision', handleDeviceDecision);
 
+    // New canonical event
+    const handleNewDecision = (msg) => {
+      if (!msg || (msg.target && msg.target !== 'sw1')) return;
+      const env = msg.env || {};
+      const data = { device: 'sw1', temperature: env.temp, humidity: env.humidity };
+      setClimateData(prev => ({ ...prev, ...data }));
+    };
+    socket.on('device-new-decision', handleNewDecision);
+
     return () => {
       console.log('SW1 Component: Removing event listener');
       socket.off('device-decision', handleDeviceDecision);
+      socket.off('device-new-decision', handleNewDecision);
     };
   }, [socket]);
 

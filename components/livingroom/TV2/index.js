@@ -56,9 +56,25 @@ export default function TV2Controls() {
 
     socket.on('device-decision', handleDeviceDecision);
 
+    // New canonical event
+    const handleNewDecision = (msg) => {
+      if (!msg || (msg.target && msg.target !== 'tv2')) return;
+      const env = msg.env || {};
+      const reason = msg.reason;
+      setAggregatedData(prev => ({
+        ...prev,
+        temperature: env.temp ?? prev.temperature,
+        humidity: env.humidity ?? prev.humidity,
+        lightColor: env.lightColor ?? prev.lightColor,
+        song: env.music ?? prev.song,
+      }));
+    };
+    socket.on('device-new-decision', handleNewDecision);
+
     return () => {
       console.log('TV2 Component: Removing event listener');
       socket.off('device-decision', handleDeviceDecision);
+      socket.off('device-new-decision', handleNewDecision);
     };
   }, [socket]);
 

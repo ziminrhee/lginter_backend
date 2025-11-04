@@ -56,9 +56,19 @@ export default function SW2Controls() {
 
     socket.on('device-decision', handleDeviceDecision);
 
+    // New canonical event
+    const handleNewDecision = (msg) => {
+      if (!msg || (msg.target && msg.target !== 'sw2')) return;
+      const env = msg.env || {};
+      const data = { device: 'sw2', lightColor: env.lightColor, song: env.music };
+      setAmbienceData(prev => ({ ...prev, ...data }));
+    };
+    socket.on('device-new-decision', handleNewDecision);
+
     return () => {
       console.log('SW2 Component: Removing event listener');
       socket.off('device-decision', handleDeviceDecision);
+      socket.off('device-new-decision', handleNewDecision);
     };
   }, [socket]);
 

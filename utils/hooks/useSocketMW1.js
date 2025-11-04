@@ -20,9 +20,7 @@ export default function useSocketMW1() {
 
       console.log("MW1 Hook: Initializing socket connection...");
 
-      const s = io({
-        path: SOCKET_CONFIG.PATH,
-      });
+      const s = io({ path: SOCKET_CONFIG.PATH });
 
       socketRef.current = s;
       setSocket(s);
@@ -30,6 +28,7 @@ export default function useSocketMW1() {
       s.on("connect", () => {
         console.log("✅ MW1 socket connected:", s.id);
         s.emit("mw1-init");
+        s.emit('device:heartbeat', { deviceId: s.id, type: 'mw1', version: '1.0.0', ts: Date.now() });
       });
 
       s.on("disconnect", () => {
@@ -40,6 +39,20 @@ export default function useSocketMW1() {
       s.on("new-name", (data) => {
         console.log("🎉 MW1 received new-name:", data);
       });
+
+      // ping/reload 응답
+      s.on('device:ping', ({ deviceId }) => {
+        s.emit('device:heartbeat', { deviceId: s.id, type: 'mw1', version: '1.0.0', ts: Date.now() });
+      });
+      if (typeof window !== 'undefined') {
+        s.on('client:reload', () => { window.location.reload(); });
+      }
+
+      // 주기적 heartbeat
+      const hb = setInterval(() => {
+        if (s.connected) s.emit('device:heartbeat', { deviceId: s.id, type: 'mw1', version: '1.0.0', ts: Date.now() });
+      }, 15000);
+      s.on('disconnect', () => clearInterval(hb));
     })();
     
     return () => {

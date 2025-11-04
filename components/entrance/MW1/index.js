@@ -14,24 +14,28 @@ export default function MW1Controls() {
 
     console.log('MW1 Component: Socket ready, registering event listener');
 
-    const handleDisplayName = (data) => {
-      console.log('🎉🎉🎉 MW1 Component received new-name:', data);
-      setWelcomeData(data);
+    const handleDisplayVoice = (data) => {
+      console.log('🎤 MW1 Component received entrance-new-voice:', data);
+      setWelcomeData({
+        name: data.userId || '손님',
+        text: data.text,
+        emotion: data.emotion
+      });
       setIsVisible(true);
       
-      // 5초 후 사라짐
+      // 8초 후 사라짐 (감정 표시가 있으므로 더 길게)
       setTimeout(() => {
         setIsVisible(false);
         setTimeout(() => setWelcomeData(null), 500); // 페이드아웃 후 데이터 클리어
-      }, 5000);
+      }, 8000);
     };
 
-    // mobile-new-name 이벤트 수신 (streamlined)
-    socket.on('new-name', handleDisplayName);
+    // entrance-new-voice 이벤트 수신 (사용자가 말한 내용 표시)
+    socket.on('entrance-new-voice', handleDisplayVoice);
 
     return () => {
       console.log('MW1 Component: Removing event listener');
-      socket.off('new-name', handleDisplayName);
+      socket.off('entrance-new-voice', handleDisplayVoice);
     };
   }, [socket]);
 
@@ -120,20 +124,22 @@ export default function MW1Controls() {
             환영합니다!
           </h1>
           <p style={{
-            fontSize: '2rem',
+            fontSize: '2.5rem',
             color: '#9333EA',
             fontWeight: '600',
-            marginBottom: '1rem'
+            marginBottom: '1.5rem',
+            lineHeight: '1.6'
           }}>
-            {welcomeData.name || '손님'}님
+            "{welcomeData.text || welcomeData.emotion}"
           </p>
-          {welcomeData.meta?.mood && (
+          {welcomeData.emotion && (
             <p style={{
-              fontSize: '1.5rem',
+              fontSize: '1.8rem',
               color: '#EC4899',
-              opacity: 0.8
+              opacity: 0.9,
+              fontWeight: '500'
             }}>
-              기분: {welcomeData.meta.mood}
+              감정: {welcomeData.emotion}
             </p>
           )}
         </div>

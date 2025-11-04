@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
-import { useRouter } from "next/router";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
-import useOpenAIAnalysis from "@/utils/hooks/useOpenAIAnalysis";
 
 // LG 퓨론 AI 로딩 애니메이션 (간단한 버전) - 메모이제이션
 const SimpleLGLoadingScreen = memo(function SimpleLGLoadingScreen() {
@@ -62,13 +60,12 @@ const SimpleLGLoadingScreen = memo(function SimpleLGLoadingScreen() {
 
 
 export default function MobileControls() {
-  const router = useRouter();
-  const isModal = router?.query?.variant === 'modal';
-  const { emitNewName, emitNewVoice, socket } = useSocketMobile();
-  const { loading, recommendations, analyze, reset } = useOpenAIAnalysis(socket);
-  const [name, setName] = useState("");
+  const { emitNewVoice, socket } = useSocketMobile();
+  const [userId] = useState(() => `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [mood, setMood] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [recommendations, setRecommendations] = useState(null);
   const [weatherGreeting, setWeatherGreeting] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [showReason, setShowReason] = useState(false);
@@ -128,19 +125,7 @@ export default function MobileControls() {
         const transcript = event.results[0][0].transcript;
         const confidence = event.results[0][0].confidence;
         setMood(transcript);
-        // 음성 인식 완료 시 이름도 자동 설정 (퓨론 사용자로)
-        if (!name.trim()) {
-          setName('사용자');
-        }
         console.log('✅ 인식 성공:', transcript, '(정확도:', Math.round(confidence * 100) + '%)');
-        
-        // 음성 인식 완료 후 자동 제출
-        setTimeout(() => {
-          const submitBtn = document.querySelector('button[type="submit"]');
-          if (submitBtn) {
-            submitBtn.click();
-          }
-        }, 500);
       };
 
       recognition.onerror = (event) => {
@@ -207,165 +192,230 @@ export default function MobileControls() {
     return () => clearInterval(typingInterval);
   }, [recommendations]);
 
+  // Join user-specific room on connect and listen for decisions
+  useEffect(() => {
+    if (!socket || !userId) return;
+    
+    const handleConnect = () => {
+      console.log('📱 Mobile connected, joining user room:', userId);
+      socket.emit('mobile-init', { userId });
+    };
+    
+    const handleDecision = (data) => {
+      console.log('📱 Mobile received decision:', data);
+      if (data?.params) {
+        setRecommendations({
+          temperature: data.params.temp,
+          humidity: data.params.humidity,
+          lightColor: data.params.lightColor,
+          song: data.params.music,
+          reason: data.reason || 'AI generated'
+        });
+        setLoading(false);
+      }
+    };
+    
+    // If already connected, emit init
+    if (socket.connected) {
+      handleConnect();
+    }
+    
+    socket.on('connect', handleConnect);
+    socket.on('mobile-new-decision', handleDecision);
+    
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('mobile-new-decision', handleDecision);
+    };
+  }, [socket, userId]);
+
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    if (!name.trim() || !mood.trim()) {
-      console.log('❌ Mobile: Name or mood is empty');
+    if (!mood.trim()) {
+      console.log('❌ Mobile: Mood is empty');
       return;
     }
     
-    console.log('📱 Mobile: Submitting data:', { name: name.trim(), mood: mood.trim() });
+    console.log('📱 Mobile: Submitting data:', { userId, mood: mood.trim() });
     
-    // 이름과 기분 전송
-    emitNewName(name.trim(), { mood: mood.trim() });
-    emitNewVoice(mood.trim(), mood.trim(), 0.8, { name: name.trim() });
+    // 감정 전송 (Server가 OpenAI 호출)
+    emitNewVoice(mood.trim(), mood.trim(), 0.8, { userId });
     
-    console.log('✅ Mobile: Data emitted successfully');
+    console.log('✅ Mobile: Data emitted successfully with userId:', userId);
     
-    // OpenAI 분석 시작
+    // 로딩 시작 (AI 응답 대기)
     setSubmitted(true);
-    await analyze(name.trim(), mood.trim());
-  }, [name, mood, emitNewName, emitNewVoice, analyze]);
+    setLoading(true);
+  }, [userId, mood, emitNewVoice]);
 
   const handleReset = useCallback(() => {
     setSubmitted(false);
-    reset();
-    setName("");
+    setLoading(false);
+    setRecommendations(null);
     setMood("");
     setShowReason(false);
     setTypedReason("");
     setShowHighlights(false);
     setShowResults(false);
-  }, [reset]);
-
-  const containerStyle = {
-    minHeight: '100vh',
-    background: 'transparent',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: isModal ? 'center' : 'flex-start',
-    justifyContent: isModal ? 'center' : 'flex-start',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    padding: isModal ? '2rem' : 'clamp(24px,6vh,64px) clamp(16px,6vw,64px)'
-  };
-
-  const wrapperStyle = {
-    background: 'transparent',
-    backdropFilter: 'none',
-    borderRadius: 0,
-    padding: 0,
-    boxShadow: 'none',
-    border: 'none',
-    width: '100%',
-    maxWidth: '640px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: isModal ? 'center' : 'flex-start'
-  };
+  }, []);
 
   return (
-    <div style={containerStyle}>
-      <div style={wrapperStyle}>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 50%, #FCEAFE 100%)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      padding: '2rem'
+    }}>
+      <div style={{
+        background: 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '25px',
+        padding: '2.5rem',
+        boxShadow: '0 20px 60px rgba(147, 51, 234, 0.15)',
+        border: '1px solid rgba(147, 51, 234, 0.1)',
+        width: '100%',
+        maxWidth: '420px'
+      }}>
         {!submitted && (
           <>
             <h1 style={{
-              fontSize: '2.25rem',
+              fontSize: '2rem',
               background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              marginBottom: '2rem',
+              marginBottom: '0.5rem',
               fontWeight: '700',
-              textAlign: isModal ? 'center' : 'left'
+              textAlign: 'center'
             }}>
-              만나서 반가워요! 저는 퓨론이라고 합니다.
+              환영합니다!
             </h1>
             
-            {/* 날씨 기반 인사말 - 기능 유지하되 숨김 */}
+            {/* 날씨 기반 인사말 - 랜딩 페이지에만 */}
             {weatherGreeting && (
-              <div style={{ display: 'none' }}>
-                <p>{weatherGreeting.fullGreeting}</p>
+              <div style={{
+                background: 'linear-gradient(135deg, #F3E8FF 0%, #FCEAFE 100%)',
+                borderRadius: '15px',
+                padding: '1rem',
+                marginBottom: '1.5rem',
+                textAlign: 'center'
+              }}>
+                <p style={{
+                  color: '#9333EA',
+                  fontSize: '1rem',
+                  lineHeight: '1.6',
+                  margin: 0,
+                  fontWeight: '500'
+                }}>
+                  {weatherGreeting.fullGreeting}
+                </p>
               </div>
             )}
             
-            {/* 설명 문구 - 기능 유지하되 숨김 */}
-            <p style={{ display: 'none' }}>
-              이름과 기분을 입력해주세요
+            <p style={{
+              color: '#9333EA',
+              fontSize: '1rem',
+              marginBottom: '2rem',
+              opacity: 0.7,
+              textAlign: 'center'
+            }}>
+              지금 기분을 말씀해주세요
             </p>
           </>
         )}
         
         {!submitted ? (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
-            {/* 입력 필드들 - 기능 유지하되 숨김 */}
-            <div style={{ display: 'none' }}>
-              <label>이름</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="이름을 입력하세요"
-              />
-            </div>
-            
-            {/* 기분 입력 필드 - 기능 유지하되 숨김 */}
-            <div style={{ display: 'none' }}>
-              <label>지금 기분</label>
-              <input
-                type="text"
-                value={mood}
-                onChange={(e) => setMood(e.target.value)}
-                placeholder="예: 행복해요, 설레요, 편안해요"
-              />
-            </div>
-            
-            {/* 마이크 버튼만 독립적으로 표시 */}
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: isModal ? 'center' : 'flex-start',
-              marginTop: '1rem'
-            }}>
-              <button
-                type="button"
-                onClick={startVoiceRecognition}
-                disabled={isListening}
-                style={{
-                  background: isListening ? '#EC4899' : 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '72px',
-                  height: '72px',
-                  cursor: isListening ? 'not-allowed' : 'pointer',
-                  fontSize: '2rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.3s',
-                  animation: isListening ? 'pulse 1s infinite' : 'none',
-                  boxShadow: '0 8px 24px rgba(147, 51, 234, 0.3)'
-                }}
-                title="음성 입력"
-              >
-                🎤
-              </button>
-            </div>
-            {isListening && (
-              <p style={{
-                color: '#EC4899',
-                fontSize: '0.9rem',
-                marginTop: '0.5rem',
-                textAlign: isModal ? 'center' : 'left',
-                fontWeight: '500'
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div>
+              <label style={{
+                display: 'block',
+                color: '#9333EA',
+                fontWeight: '600',
+                marginBottom: '0.5rem',
+                fontSize: '0.95rem'
               }}>
-                🎤 듣고 있습니다...
-              </p>
-            )}
+                지금 기분
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  value={mood}
+                  onChange={(e) => setMood(e.target.value)}
+                  placeholder="예: 행복해요, 설레요, 편안해요"
+                  style={{
+                    width: '100%',
+                    padding: '1rem',
+                    paddingRight: '4rem',
+                    border: '2px solid #F3E8FF',
+                    borderRadius: '15px',
+                    fontSize: '1rem',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    outline: 'none',
+                    transition: 'all 0.3s',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#9333EA'}
+                  onBlur={(e) => e.target.style.borderColor = '#F3E8FF'}
+                />
+                <button
+                  type="button"
+                  onClick={startVoiceRecognition}
+                  disabled={isListening}
+                  style={{
+                    position: 'absolute',
+                    right: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: isListening ? '#EC4899' : 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '0.5rem 0.75rem',
+                    cursor: isListening ? 'not-allowed' : 'pointer',
+                    fontSize: '1.2rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.3s',
+                    animation: isListening ? 'pulse 1s infinite' : 'none'
+                  }}
+                  title="음성 입력"
+                >
+                  🎤
+                </button>
+              </div>
+              {isListening && (
+                <p style={{
+                  color: '#EC4899',
+                  fontSize: '0.85rem',
+                  marginTop: '0.5rem',
+                  textAlign: 'center',
+                  fontWeight: '500'
+                }}>
+                  🎤 듣고 있습니다...
+                </p>
+              )}
+            </div>
             
-            {/* 제출 버튼 - 기능 유지하되 숨김 (음성으로 자동 제출됨) */}
             <button
               type="submit"
               style={{
-                display: 'none'
+                width: '100%',
+                padding: '1rem',
+                background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '15px',
+                fontSize: '1.1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 10px 30px rgba(147, 51, 234, 0.3)',
+                transition: 'all 0.3s'
               }}
+              onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+              onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
             >
               입력 완료
             </button>
@@ -453,7 +503,7 @@ export default function MobileControls() {
                     marginBottom: '1rem',
                     textAlign: 'center'
                   }}>
-                    🎯 {name}님을 위한 추천
+                    🎯 AI 추천 결과
                   </h3>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
@@ -565,7 +615,55 @@ export default function MobileControls() {
             </p>
           </div>
         )}
-        {/* Note: moved keyframe animations to globals.css to avoid JSX parsing issues */}
+        
+        <style jsx>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+          }
+          
+          @keyframes fadeInOut {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+          }
+          
+          @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0; }
+          }
+          
+          @keyframes highlightFade {
+            0% { 
+              background: linear-gradient(135deg, #9333EA60 0%, #EC489960 100%);
+              transform: scale(1.05);
+            }
+            100% { 
+              background: linear-gradient(135deg, #9333EA20 0%, #EC489920 100%);
+              transform: scale(1);
+            }
+          }
+          
+          @keyframes slideInUp {
+            0% { 
+              opacity: 0;
+              transform: translateY(30px);
+            }
+            100% { 
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
+          @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0; }
+          }
+        `}</style>
       </div>
     </div>
   );
