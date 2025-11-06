@@ -112,7 +112,7 @@ export default function TV2Controls() {
           width: 100vw;
           height: 100vh;
           overflow: hidden;
-          background: linear-gradient(135deg, #F7FAFC 0%, #FFEAF4 45%, #FFF1D6 100%);
+          background: #FFFFFF;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
@@ -141,8 +141,9 @@ export default function TV2Controls() {
         @property --s4o { syntax: '<percentage>'; inherits: false; initial-value: 70%; }
 
         .blob.mono {
-          width: 64vmin; height: 64vmin; left: 18vw; top: 28vh;
+          width: 82vmin; height: 82vmin; left: 14vw; top: 24vh;
           border-radius: 50%;
+          clip-path: circle(50% at 50% 50%);
           /* initial centers for moving lobes */
           --p1x: 72%; --p1y: 52%;
           --p2x: 46%; --p2y: 68%;
@@ -176,6 +177,13 @@ export default function TV2Controls() {
           opacity: 0.65;
           mix-blend-mode: screen;
           pointer-events: none;
+        }
+        .blob.mono::after {
+          /* crisp inner stroke for mask-like edge */
+          content: '';
+          position: absolute; inset: 0; border-radius: inherit;
+          box-shadow: inset 0 0 0 2px rgba(255,255,255,0.85);
+          pointer-events: none; mix-blend-mode: screen;
         }
         .blob.mono::after {
           /* huge soft halo to get blurry edge */
