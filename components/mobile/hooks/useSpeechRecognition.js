@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-export default function useSpeechRecognition({ onResult, onStart, onError, onEnd } = {}) {
+export default function useSpeechRecognition({ onResult, onInterim, onStart, onError, onEnd } = {}) {
   const [isListening, setIsListening] = useState(false);
 
   const startVoiceRecognition = useCallback(() => {
@@ -14,30 +14,48 @@ export default function useSpeechRecognition({ onResult, onStart, onError, onEnd
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       recognition.lang = 'ko-KR';
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition.continuous = true; // allow interim updates
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
         setIsListening(true);
+        if (typeof window !== 'undefined') window.isListening = true;
+        if (typeof onInterim === 'function') onInterim('');
         if (typeof onStart === 'function') onStart();
         console.log('🎤 음성 인식 시작됨');
       };
 
       recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        const confidence = event.results[0][0].confidence;
-        if (typeof onResult === 'function') onResult({ transcript, confidence });
-        console.log('✅ 인식 성공:', transcript, '(정확도:', Math.round(confidence * 100) + '%)');
-        setTimeout(() => {
-          const submitBtn = document.querySelector('button[type="submit"]');
-          if (submitBtn) submitBtn.click();
-        }, 500);
+        // Display text: concat every hypothesis so far (super-fast feedback)
+        const displayText = Array.from(event.results)
+          .map(r => r[0]?.transcript ?? '')
+          .join('')
+          .trim();
+        if (displayText && typeof onInterim === 'function') onInterim(displayText);
+
+        // Collect final segments (if any appeared in this event)
+        let finalText = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const res = event.results[i];
+          if (res.isFinal) finalText += res[0].transcript;
+        }
+        if (finalText) {
+          const last = event.results[event.results.length - 1][0];
+          const confidence = last?.confidence ?? 1;
+          if (typeof onResult === 'function') onResult({ transcript: finalText.trim(), confidence });
+          try { recognition.stop(); } catch (_) {}
+          setTimeout(() => {
+            const submitBtn = document.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.click();
+          }, 300);
+        }
       };
 
       recognition.onerror = (event) => {
         console.error('❌ 음성 인식 오류:', event.error);
         setIsListening(false);
+        if (typeof window !== 'undefined') window.isListening = false;
         if (typeof onError === 'function') onError(event.error);
 
         let errorMsg = '';
@@ -55,6 +73,7 @@ export default function useSpeechRecognition({ onResult, onStart, onError, onEnd
 
       recognition.onend = () => {
         setIsListening(false);
+        if (typeof window !== 'undefined') window.isListening = false;
         if (typeof onEnd === 'function') onEnd();
         console.log('🎤 음성 인식 종료');
       };

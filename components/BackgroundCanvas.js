@@ -4,6 +4,20 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
   const [mounted, setMounted] = useState(false)
   const [isMobilePage, setIsMobilePage] = useState(false)
   const [pressProgress, setPressProgress] = useState(0)
+  const [isListeningFlag, setIsListeningFlag] = useState(false)
+  const [blobAlpha, setBlobAlpha] = useState(1)
+  const [blobOpacityMs, setBlobOpacityMs] = useState(600)
+  const [blobScale, setBlobScale] = useState(1)
+  const [blobScaleMs, setBlobScaleMs] = useState(600)
+  const [showOrbits, setShowOrbits] = useState(false)
+  const [clusterSpin, setClusterSpin] = useState(false)
+  const [orbitRadiusScale, setOrbitRadiusScale] = useState(1)
+  const [mainBlobFade, setMainBlobFade] = useState(false)
+  const [newOrbEnter, setNewOrbEnter] = useState(false)
+  const [showFinalOrb, setShowFinalOrb] = useState(false)
+  const [showCenterGlow, setShowCenterGlow] = useState(false)
+  const [keywordLabels, setKeywordLabels] = useState([])
+  const [showKeywords, setShowKeywords] = useState(false)
   const [blobSettings, setBlobSettings] = useState({
     centerX: 39,
     centerY: 33,
@@ -64,6 +78,37 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
             boost: bs.boost ?? prev.boost,
           }))
         }
+        if (window.isListening !== undefined) {
+          setIsListeningFlag(Boolean(window.isListening))
+        }
+        if (window.blobOpacity !== undefined) {
+          const a = Number(window.blobOpacity)
+          if (!Number.isNaN(a)) setBlobAlpha(Math.max(0, Math.min(1, a)))
+        }
+        if (window.blobOpacityMs !== undefined) {
+          const ms = Number(window.blobOpacityMs)
+          if (!Number.isNaN(ms)) setBlobOpacityMs(ms)
+        }
+        if (window.blobScale !== undefined) {
+          const s = Number(window.blobScale)
+          if (!Number.isNaN(s)) setBlobScale(Math.max(0.1, Math.min(2, s)))
+        }
+        if (window.blobScaleMs !== undefined) {
+          const ms2 = Number(window.blobScaleMs)
+          if (!Number.isNaN(ms2)) setBlobScaleMs(ms2)
+        }
+        if (window.showOrbits !== undefined) setShowOrbits(Boolean(window.showOrbits))
+        if (window.clusterSpin !== undefined) setClusterSpin(Boolean(window.clusterSpin))
+        if (window.orbitRadiusScale !== undefined) {
+          const rs = Number(window.orbitRadiusScale)
+          if (!Number.isNaN(rs)) setOrbitRadiusScale(Math.max(0.5, Math.min(1.4, rs)))
+        }
+        if (window.mainBlobFade !== undefined) setMainBlobFade(Boolean(window.mainBlobFade))
+        if (window.newOrbEnter !== undefined) setNewOrbEnter(Boolean(window.newOrbEnter))
+        if (window.showFinalOrb !== undefined) setShowFinalOrb(Boolean(window.showFinalOrb))
+        if (window.showCenterGlow !== undefined) setShowCenterGlow(Boolean(window.showCenterGlow))
+        if (window.keywordLabels !== undefined) setKeywordLabels(Array.isArray(window.keywordLabels) ? window.keywordLabels : [])
+        if (window.showKeywords !== undefined) setShowKeywords(Boolean(window.showKeywords))
         // Background is fixed now; ignore window.bgSettings
       }
       requestAnimationFrame(check)
@@ -86,16 +131,24 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
     )
   }
 
-  // 꾹 누르기 이징
+  // 꾹 누르기 이징 (사용하되 비주얼 변화는 제거)
   const pressEase = pressProgress * pressProgress * (3.0 - 2.0 * pressProgress)
   
   // 모바일 페이지에서 크기와 위치 조정
   const blobSize = isMobilePage ? 350 : 150
   const blobTop = isMobilePage ? '60%' : '50%'
   
-  // 꾹 누를 때 블러와 밝기 증가 (위로 이동 제거)
-  const blurIncrease = pressEase * 50 // 블러 최대 50px 증가
-  const brightnessIncrease = 1 + pressEase * 0.4 // 밝기 최대 1.4배 증가
+  // 프레스 시 화이트아웃 제거: 블러/밝기 증가 사용하지 않음
+  const blurIncrease = 0
+  const brightnessIncrease = 1
+  // Figma-provided orbit shapes scale helpers
+  const designBase = 350
+  const blurBase = 50
+  const blurPx = Math.round(blurBase * (blobSize / designBase))
+  const shape1W = blobSize * 0.534 // ≈ 187/350
+  const shape1H = blobSize * 0.554 // ≈ 194/350
+  const shape2W = blobSize * 0.735 // ≈ 257/350
+  const shape2H = blobSize * 0.763 // ≈ 267/350
 
   const bgGradient = `linear-gradient(to bottom, ${BG_TOP} 0%, ${BG_MID} ${BG_MID_STOP}%, ${BG_LOW} ${BG_LOW_STOP}%, ${BG_BOTTOM} 100%)`
 
@@ -120,33 +173,172 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
           width: `${blobSize}px`,
           height: `${blobSize}px`,
           filter: `brightness(${brightnessIncrease})`,
+          opacity: blobAlpha,
+          transition: `opacity ${blobOpacityMs}ms ease`,
           pointerEvents: 'none'
         }}>
           <div className="bg-glow" />
-          <div
-            className="blob"
-            style={{
-              '--center-x': `${blobSettings.centerX}%`,
-              '--center-y': `${blobSettings.centerY}%`,
-              '--start': `${blobSettings.start}%`,
-              '--end': `${blobSettings.end}%`,
-              '--blur': `${blobSettings.blurPx + blurIncrease}px`,
-              '--feather': `${blobSettings.feather}%`,
-              '--inner-blur': `${blobSettings.innerBlur}px`,
-              '--rim-tilt': `${blobSettings.rimTilt}deg`,
-              '--c0': `${blobSettings.color0}`,
-              '--c1': `${blobSettings.color1}`,
-              '--c2': `${blobSettings.color2}`,
-              '--c3': `${blobSettings.color3}`,
-              '--c4': `${blobSettings.color4}`,
-              '--bg': `radial-gradient(circle at var(--center-x) var(--center-y), var(--c0) 0%, var(--c1) 13%, var(--c2) 47%, var(--c3) 78%, var(--c4) 100%)`,
-              '--tint-alpha': blobSettings.tintAlpha,
-              '--boost': blobSettings.boost,
-              width: `${blobSize}px`,
-              aspectRatio: '1 / 1'
-            }}
-          >
-            <div className="ring-boost" />
+          <div style={{ position: 'absolute', inset: 0, animation: clusterSpin ? 'clusterSpin 6s linear infinite' : 'none', pointerEvents: 'none' }}>
+            {showOrbits && (
+              <>
+                {/* Orbit A - Figma spec: linear gradient #000 -> #0D3664 -> #E096E2 with 50px blur */}
+                <div style={{
+                  position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+                  width: `${blobSize * 0.92}px`, height: `${blobSize * 0.92}px`, zIndex: 0,
+                  animation: 'orbitCW 12s linear infinite'
+                }}>
+                  <div style={{
+                    position: 'absolute', left: '50%', top: '50%', transform: `translate(-50%, -50%) rotate(-176.444deg)`,
+                    width: `${shape1W}px`, height: `${shape1H}px`, borderRadius: '50% / 50%',
+                    background: 'linear-gradient(180deg, #000000 0%, #0D3664 50%, #E096E2 98.08%)',
+                    filter: `blur(${blurPx}px)`
+                  }} />
+                </div>
+                {/* Orbit B - Figma spec: pink gradient with 50px blur */}
+                <div style={{
+                  position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+                  width: `${blobSize * 0.84}px`, height: `${blobSize * 0.84}px`, zIndex: 0,
+                  animation: 'orbitCCW 14s linear infinite'
+                }}>
+                  <div style={{
+                    position: 'absolute', left: '50%', top: '50%', transform: `translate(-50%, -50%) rotate(-144.552deg)`,
+                    width: `${shape2W}px`, height: `${shape2H}px`, borderRadius: '50% / 50%',
+                    background: 'linear-gradient(180deg, #FC8AD6 0%, #FFD8E0 75.48%)',
+                    filter: `blur(${blurPx}px)`
+                  }} />
+                </div>
+                {/* keyword labels rendered outside orbit containers to avoid inheriting rotation */}
+                {showKeywords ? (
+                  <>
+                    {/* Temp (CW) */}
+                    {keywordLabels[0] ? (
+                      <div style={{
+                        position: 'absolute', left: '50%', top: '50%',
+                        animation: 'labelCW 12s linear infinite',
+                        color: '#111', fontWeight: 800, fontFamily: 'inherit',
+                        fontSize: 'clamp(1rem, 3.4vw, 1.25rem)'
+                      }}>{keywordLabels[0]}</div>
+                    ) : null}
+                    {/* Humidity (CCW) */}
+                    {keywordLabels[1] ? (
+                      <div style={{
+                        position: 'absolute', left: '50%', top: '50%',
+                        animation: 'labelCCW 14s linear infinite',
+                        color: '#111', fontWeight: 800, fontFamily: 'inherit',
+                        fontSize: 'clamp(1rem, 3.4vw, 1.25rem)'
+                      }}>{keywordLabels[1]}</div>
+                    ) : null}
+                    {/* Light color name (CW, bottom offset) */}
+                    {keywordLabels[2] ? (
+                      <div style={{
+                        position: 'absolute', left: '50%', top: '50%',
+                        animation: 'labelCWBottom 12s linear infinite',
+                        color: '#111', fontWeight: 800, fontFamily: 'inherit',
+                        fontSize: 'clamp(1rem, 3.4vw, 1.25rem)'
+                      }}>{keywordLabels[2]}</div>
+                    ) : null}
+                    {/* Music mood (CCW, bottom offset) */}
+                    {keywordLabels[3] ? (
+                      <div style={{
+                        position: 'absolute', left: '50%', top: '50%',
+                        animation: 'labelCCWBottom 14s linear infinite',
+                        color: '#111', fontWeight: 800, fontFamily: 'inherit',
+                        fontSize: 'clamp(1rem, 3.4vw, 1.25rem)'
+                      }}>{keywordLabels[3]}</div>
+                    ) : null}
+                  </>
+                ) : null}
+                {/* New entering orb (from outside, then joins rotation) */}
+                {newOrbEnter && (
+                  <div style={{
+                    position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+                    width: `${blobSize * 0.92}px`, height: `${blobSize * 0.92}px`, zIndex: 0
+                  }}>
+                    <div style={{
+                      position: 'absolute', left: '50%', top: '50%',
+                      transform: `translate(-50%, -50%) rotate(85.988deg)`,
+                      width: `${Math.round(blobSize * 0.834)}px`,
+                      height: `${Math.round(blobSize * 0.866)}px`,
+                      borderRadius: `${Math.round(blobSize * 0.866)}px`,
+                      opacity: 0.7,
+                      background: 'linear-gradient(167deg, #F8E3B7 9.32%, #FF85B1 61.8%, #E3FFF4 103.45%)',
+                      filter: 'blur(10px)',
+                      animation: `newOrbEnter ${Math.max(700, blobOpacityMs)}ms ease-out forwards`
+                    }} />
+                  </div>
+                )}
+
+                {/* Final phase: extra orb and center glow */}
+                {showFinalOrb && (
+                  <div style={{
+                    position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+                    width: `${blobSize * 1.02}px`, height: `${blobSize * 1.06}px`, zIndex: 0,
+                    animation: 'orbitCW 16s linear infinite'
+                  }}>
+                    <div style={{
+                      position: 'absolute', left: '50%', top: '50%',
+                      transform: 'translate(-50%, -50%) rotate(-85.44deg)',
+                      width: `${Math.round(blobSize * 1.01)}px`,
+                      height: `${Math.round(blobSize * 1.05)}px`,
+                      borderRadius: `${Math.round(blobSize * 1.05)}px`,
+                      background: 'linear-gradient(180deg, #E291C7 0%, #FFD8E0 75.48%)',
+                      filter: 'blur(50px)',
+                      opacity: 0.95,
+                      animation: 'finalOrbAppear 900ms ease-out forwards'
+                    }} />
+                  </div>
+                )}
+                {showCenterGlow && (
+                  <div style={{
+                    position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+                    width: `${Math.round(blobSize * 1.10)}px`,
+                    height: `${Math.round(blobSize * 1.10)}px`,
+                    borderRadius: `${Math.round(blobSize * 1.10)}px`,
+                    opacity: 0.7,
+                    background: 'radial-gradient(50% 50% at 50% 50%, #FFF 39.42%, rgba(255, 255, 255, 0.00) 100%)',
+                    mixBlendMode: 'overlay',
+                    filter: 'blur(29.5px)',
+                    animation: 'centerGlowPulse 3s ease-in-out infinite'
+                  }} />
+                )}
+              </>
+            )}
+            <div
+              className={`blob${isListeningFlag ? ' frozen' : ''}`}
+              style={{
+                '--center-x': `${blobSettings.centerX}%`,
+                '--center-y': `${blobSettings.centerY}%`,
+                '--start': `${blobSettings.start}%`,
+                '--end': `${blobSettings.end}%`,
+                '--blur': `${blobSettings.blurPx + blurIncrease}px`,
+                '--feather': `${blobSettings.feather}%`,
+                '--inner-blur': `${blobSettings.innerBlur}px`,
+                '--rim-tilt': `${blobSettings.rimTilt}deg`,
+                '--c0': `${blobSettings.color0}`,
+                '--c1': `${blobSettings.color1}`,
+                '--c2': `${blobSettings.color2}`,
+                '--c3': `${blobSettings.color3}`,
+                '--c4': `${blobSettings.color4}`,
+                '--bg': `radial-gradient(circle at var(--center-x) var(--center-y), var(--c0) 0%, var(--c1) 13%, var(--c2) 47%, var(--c3) 78%, var(--c4) 100%)`,
+                '--tint-alpha': blobSettings.tintAlpha,
+                '--boost': blobSettings.boost,
+                width: `${blobSize}px`,
+                aspectRatio: '1 / 1',
+                transform: `translateZ(0) scale(${blobScale})`,
+                transition: `transform ${blobScaleMs}ms ease, opacity ${blobOpacityMs}ms ease, filter ${blobOpacityMs}ms ease`,
+                opacity: mainBlobFade ? 0 : 1,
+                filter: mainBlobFade ? 'blur(10px)' : 'none',
+                ...(isListeningFlag ? {
+                  animation: 'none',
+                  '--start-wobble': 'calc(12% - var(--start))',
+                  '--end-wobble': 'calc(86% - var(--end))',
+                  '--feather-wobble': '3%',
+                  '--blur-wobble': 'calc(8px - var(--blur))'
+                } : {})
+              }}
+            >
+              <div className="ring-boost" />
+            </div>
           </div>
         </div>
       ) : (
@@ -439,6 +631,14 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
           animation: ringPulse 6s ease-in-out infinite;
         }
 
+        .blob.frozen {
+          animation: none !important;
+          --start-wobble: calc(0% - var(--start));
+          --end-wobble: 0%;
+          --feather-wobble: 0%;
+          --blur-wobble: calc(0px - var(--blur));
+        }
+
         .ring-boost {
           position: absolute;
           inset: 0;
@@ -542,6 +742,57 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
             --feather-wobble: 5%;
             --blur-wobble: calc(120px - var(--blur));
           }
+        }
+
+        @keyframes orbitCW {
+          0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${blobSize * 0.6}px); }
+          100% { transform: translate(-50%, -50%) rotate(360deg) translateX(${blobSize * 0.6}px); }
+        }
+        @keyframes orbitCCW {
+          0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${blobSize * 0.5}px); }
+          100% { transform: translate(-50%, -50%) rotate(-360deg) translateX(${blobSize * 0.5}px); }
+        }
+        @keyframes clusterSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes counterCW {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(-360deg); }
+        }
+        @keyframes counterCCW {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes newOrbEnter {
+          0% { transform: translate(-50%, -50%) rotate(85.988deg) translateX(${blobSize * 1.8}px); opacity: 0; }
+          100% { transform: translate(-50%, -50%) rotate(85.988deg) translateX(${blobSize * 0.58 * orbitRadiusScale}px); opacity: 0.7; }
+        }
+        @keyframes finalOrbAppear {
+          0% { opacity: 0; transform: translate(-50%, -50%) rotate(-85.44deg) scale(0.9); }
+          100% { opacity: 0.95; transform: translate(-50%, -50%) rotate(-85.44deg) scale(1); }
+        }
+        @keyframes centerGlowPulse {
+          0%, 100% { opacity: 0.6; filter: blur(29.5px); }
+          50% { opacity: 0.85; filter: blur(22px); }
+        }
+
+        /* Label orbits that maintain upright text: rotate(theta) translateX(R) rotate(-theta) */
+        @keyframes labelCW {
+          0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${blobSize * 0.58}px) rotate(0deg) translateY(-18px); }
+          100% { transform: translate(-50%, -50%) rotate(360deg) translateX(${blobSize * 0.58}px) rotate(-360deg) translateY(-18px); }
+        }
+        @keyframes labelCCW {
+          0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${blobSize * 0.5}px) rotate(0deg) translateY(-18px); }
+          100% { transform: translate(-50%, -50%) rotate(-360deg) translateX(${blobSize * 0.5}px) rotate(360deg) translateY(-18px); }
+        }
+        @keyframes labelCWBottom {
+          0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${blobSize * 0.58}px) rotate(0deg) translateY(26px); }
+          100% { transform: translate(-50%, -50%) rotate(360deg) translateX(${blobSize * 0.58}px) rotate(-360deg) translateY(26px); }
+        }
+        @keyframes labelCCWBottom {
+          0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${blobSize * 0.5}px) rotate(0deg) translateY(26px); }
+          100% { transform: translate(-50%, -50%) rotate(-360deg) translateX(${blobSize * 0.5}px) rotate(360deg) translateY(26px); }
         }
       `}</style>
     </div>

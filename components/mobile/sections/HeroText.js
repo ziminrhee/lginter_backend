@@ -53,23 +53,25 @@ export default function HeroText({ isModal = false, onFinalPhase }) {
     }
   }, [phase]);
 
-  const { line1, line2, showSub } = useMemo(() => {
+  const { line1, line2, subText } = useMemo(() => {
     if (phase === 'greet1') {
-      return { line1: '만나서', line2: '반가워요!', showSub: true };
+      return { line1: '만나서', line2: '반가워요!', subText: '저는 퓨론이라고 합니다.' };
     }
     if (phase === 'greet2') {
-      return { line1: '오늘도', line2: '수고하셨어요.', showSub: false };
+      return { line1: '오늘도', line2: '수고하셨어요.', subText: null };
     }
     if (phase === 'final') {
-      return { line1: '오늘의 하루는', line2: '어땠나요?', showSub: false };
+      return { line1: '오늘 하루는', line2: '어땠나요?', subText: '아래 퓨론을 3초 간 길게 눌러 말해주세요.' };
     }
     // hidden
-    return { line1: '', line2: '', showSub: false };
+    return { line1: '', line2: '', subText: null };
   }, [phase]);
 
   if (phase === 'hidden') {
     return <div style={{ marginBottom: spacing.hero.blockMarginBottom }} />;
   }
+
+  const subtextFontSize = 'clamp(1.1rem, 3.7vw, 1.25rem)';
 
   return (
     <div style={{ marginBottom: spacing.hero.blockMarginBottom }}>
@@ -86,9 +88,9 @@ export default function HeroText({ isModal = false, onFinalPhase }) {
       }}>
         {line1}<br/>{line2}
       </h1>
-      {showSub && (
+      {subText && (
         <p style={{
-          fontSize: typography.heroSubtextSize,
+          fontSize: subtextFontSize,
           color: colors.textSecondary,
           marginTop: spacing.hero.subtextMarginTop,
           fontWeight: 500,
@@ -97,7 +99,7 @@ export default function HeroText({ isModal = false, onFinalPhase }) {
           opacity,
           transition: `opacity ${fadeMs}ms ease`
         }}>
-          저는 퓨론이라고 합니다.
+          {subText}
         </p>
       )}
     </div>
