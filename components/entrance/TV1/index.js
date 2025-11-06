@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Head from "next/head";
 import useSocketTV1 from "@/utils/hooks/useSocketTV1";
 
 export default function TV1Controls() {
@@ -6,7 +7,7 @@ export default function TV1Controls() {
   const [keywords, setKeywords] = useState([]);
   const [tv2Color, setTv2Color] = useState('#FFD166');
   const [draft, setDraft] = useState('');
-  const unifiedFont = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif';
+  const unifiedFont = '\'Pretendard\', \'Pretendard Variable\', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
   const tv2GradientPalette = ['#FF78AA', '#FFD6A8', '#CEE8E8', '#CAAFFF'];
 
   // --- helpers: color math for pill gradients ---
@@ -100,12 +101,19 @@ export default function TV1Controls() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #2A1248 0%, #3C1770 45%, #6B1CD4 100%)',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      padding: '2rem',
+      background: 'linear-gradient(180deg, #F9FBFF 0%, #EFF2FF 35%, #E9E9FF 100%)',
+      fontFamily: unifiedFont,
+      padding: '3.2rem 2.4rem 2.4rem',
       position: 'relative',
       overflow: 'hidden'
     }}>
+      <Head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;700;800&display=swap" rel="stylesheet" />
+      </Head>
+
+      <h2 className="title">오늘의 감정들은…</h2>
       <form className="quick-input" onSubmit={(e) => { e.preventDefault(); addLocalKeyword(draft); setDraft(''); }}>
         <input
           value={draft}
@@ -121,10 +129,10 @@ export default function TV1Controls() {
             key={kw.id}
             className="pill"
             style={{
-              fontSize: kw.fontSize,
+              fontSize: '1rem',
               fontFamily: kw.fontFamily,
               fontStyle: kw.fontStyle,
-              fontWeight: kw.fontWeight,
+              fontWeight: 300,
               background: buildPillGradient()
             }}
           >
@@ -155,10 +163,12 @@ export default function TV1Controls() {
           100% { --x1: 82%; --y1: 36%; --x2: 22%; --y2: 86%; }
         }
 
-        .quick-input { position: sticky; top: 0; z-index: 10; display: flex; gap: 0.5rem; padding-bottom: 0.8rem; margin-bottom: 1rem; background: linear-gradient(180deg, rgba(14,16,22,0.95), rgba(14,16,22,0.55) 70%, rgba(14,16,22,0)); backdrop-filter: blur(6px); }
-        .quick-input input { flex: 1; min-width: 0; padding: 0.6rem 0.9rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: #f5f7fa; outline: none; }
-        .quick-input input::placeholder { color: #c7c9d1; opacity: 0.7; }
-        .quick-input button { padding: 0.55rem 0.9rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: linear-gradient(135deg, #ffffff 0%, #ffe3f0 100%); color: #101114; font-weight: 800; }
+        .quick-input { position: sticky; top: 0; z-index: 10; display: flex; gap: 0.5rem; padding-bottom: 0.8rem; margin-bottom: 1rem; opacity: 0.15; transform: scale(0.98); }
+        .quick-input input { flex: 1; min-width: 0; padding: 0.6rem 0.9rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06); background: rgba(255,255,255,0.5); color: #222; outline: none; }
+        .quick-input input::placeholder { color: #667; opacity: 0.7; }
+        .quick-input button { padding: 0.55rem 0.9rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: linear-gradient(135deg, #ffffff 0%, #f7faff 100%); color: #222; font-weight: 700; }
+
+        .title { margin: 0 0 1.2rem 0.3rem; font-size: clamp(18px, 2.6vw, 28px); font-weight: 300; color: #111; letter-spacing: -0.2px; }
 
         .pill-wrap {
           display: flex; flex-wrap: wrap; gap: 0.7rem 0.8rem;
@@ -168,17 +178,17 @@ export default function TV1Controls() {
           align-self: flex-start;
           display: inline-flex;
           align-items: center;
-          min-height: 2.2rem;
-          padding: 0.3rem 0.9rem;
+          min-height: 2.0rem;
+          padding: 0.28rem 0.86rem;
           border-radius: 999px;
           color: #0b0b0b;
-          font-weight: 800;
+          font-weight: 300;
           font-family: ${'${unifiedFont}'};
           letter-spacing: 0.1px;
-          box-shadow: 0 8px 22px rgba(0,0,0,0.38), inset 0 0 0 1px rgba(255,255,255,0.40);
+          box-shadow: 0 6px 18px rgba(60, 70, 130, 0.20), inset 0 0 0 1px rgba(255,255,255,0.45);
           animation: fadeIn 0.5s ease-out, pillWobble 6s ease-in-out infinite, pillFlow 7s ease-in-out infinite;
-          backdrop-filter: blur(12px) saturate(140%);
-          -webkit-backdrop-filter: blur(12px) saturate(140%);
+          backdrop-filter: blur(10px) saturate(140%);
+          -webkit-backdrop-filter: blur(10px) saturate(140%);
           position: relative;
         }
         .pill:nth-child(odd) { animation-duration: 0.5s, 7.5s, 8.5s; }
