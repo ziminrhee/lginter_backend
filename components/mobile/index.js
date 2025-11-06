@@ -13,6 +13,7 @@ import useSpeechRecognition from "./hooks/useSpeechRecognition";
 import useWeatherGreeting from "./hooks/useWeatherGreeting";
 import useTypewriter from "./hooks/useTypewriter";
 import { fonts, spacing } from "./styles/tokens";
+import { appContainer, contentWrapper } from "./modules/shared/layout";
 import ListeningOverlay from "./sections/ListeningOverlay";
 
 export default function MobileControls() {
@@ -130,70 +131,96 @@ export default function MobileControls() {
 
   // (Typewriter, weather, press handlers moved to hooks above)
 
-  // When the typewriter finishes the whole message
-  // 1) Keep text fully visible for 2s
-  // 2) Then fade out and immediately show results
+  // When the typewriter finishes: 2s hold -> fade text -> 3s blobs solo -> attach labels -> results
   useEffect(() => {
     if (!fullTypedText) return;
     if (typedReason && typedReason.length >= fullTypedText.length && !orbShowcaseStarted) {
       setOrbShowcaseStarted(true);
-      const textHoldMs = 2000;
-      // Immediately show keyword labels bound to orbits, and restore orb/glow during the hold
-      if (typeof window !== 'undefined' && recommendations) {
-        const colorName = (() => {
-          const hex = (recommendations.lightColor || '').replace('#','');
-          if (hex.length !== 6) return '조명';
+
+      const TEXT_HOLD_MS = 2000;
+      const ORBIT_SOLO_MS = 3000;
+      const LABEL_HOLD_MS = 2000;
+
+      const timers = [];
+
+      // Precompute labels (not shown yet)
+      let colorName = '조명';
+      let musicLabel = '';
+      if (recommendations) {
+        const hex = (recommendations.lightColor || '').replace('#','');
+        if (hex.length === 6) {
           const r = parseInt(hex.slice(0,2), 16) / 255;
           const g = parseInt(hex.slice(2,4), 16) / 255;
           const b = parseInt(hex.slice(4,6), 16) / 255;
-          const max = Math.max(r,g,b), min = Math.min(r,g,b);
+          const max = Math.max(r, g, b), min = Math.min(r, g, b);
           let h = 0; const d = max - min;
-          if (d === 0) h = 0; else if (max === r) h = ((g-b)/d)%6; else if (max === g) h = (b-r)/d + 2; else h = (r-g)/d + 4;
-          h = Math.round(h*60); if (h<0) h += 360;
-          if (h < 20 || h >= 340) return '빨간 조명';
-          if (h < 50) return '주황 조명';
-          if (h < 70) return '노란 조명';
-          if (h < 170) return '초록 조명';
-          if (h < 260) return '파란 조명';
-          if (h < 310) return '보라 조명';
-          return '분홍 조명';
-        })();
-        const musicLabel = (() => {
-          const s = (recommendations.song || '').toLowerCase();
-          if (s.includes('jazz')) return '재즈';
-          if (s.includes('rock')) return '록';
-          if (s.includes('hip') || s.includes('rap')) return '힙합';
-          if (s.includes('ballad')) return '발라드';
-          if (s.includes('pop')) return '팝';
-          return (recommendations.song || '').split('-')[0].trim();
-        })();
-        window.keywordLabels = [
-          `${recommendations.temperature}°C`, // 1. 온도
-          `${recommendations.humidity}%`,    // 2. 습도
-          colorName,                          // 3. 조명 색상명
-          musicLabel                          // 4. 음악 무드
-        ];
-        window.showKeywords = true;
-        window.showFinalOrb = true;
-        window.showCenterGlow = true;
-        window.clusterSpin = true;
-      }
-      const t = setTimeout(() => {
-        setFadeText(true);
-        setLocalShowResults(true);
-        setOrchestratingLock(false);
-        if (typeof window !== 'undefined') {
-          window.showKeywords = false;
-          window.showFinalOrb = false;
-          window.showCenterGlow = false;
-          window.clusterSpin = false;
-          window.mainBlobFade = false;
-          window.newOrbEnter = false;
+          if (d !== 0) {
+            if (max === r) h = ((g - b) / d) * 60;
+            else if (max === g) h = ((b - r) / d) * 60 + 120;
+            else h = ((r - g) / d) * 60 + 240;
+            if (h < 0) h += 360;
+          }
+          if (h < 20 || h >= 340) colorName = '빨간 조명';
+          else if (h < 50) colorName = '주황 조명';
+          else if (h < 70) colorName = '노란 조명';
+          else if (h < 170) colorName = '초록 조명';
+          else if (h < 260) colorName = '파란 조명';
+          else if (h < 310) colorName = '보라 조명';
+          else colorName = '분홍 조명';
         }
-      }, textHoldMs);
-      return () => clearTimeout(t);
+        const s = (recommendations.song || '').toLowerCase();
+        if (s.includes('jazz')) musicLabel = '재즈';
+        else if (s.includes('rock')) musicLabel = '록';
+        else if (s.includes('hip') || s.includes('rap')) musicLabel = '힙합';
+        else if (s.includes('ballad')) musicLabel = '발라드';
+        else if (s.includes('pop')) musicLabel = '팝';
+        else musicLabel = (recommendations.song || '').split('-')[0].trim();
+      }
+
+      const t1 = setTimeout(() => {
+        // fade out text, start orbits (no labels)
+        setFadeText(true);
+        if (typeof window !== 'undefined') {
+          window.showFinalOrb = true;
+          window.showCenterGlow = true;
+          window.clusterSpin = true;
+          window.showOrbits = true;
+          window.showKeywords = false;
+        }
+
+        const t2 = setTimeout(() => {
+          // attach labels after solo spin
+          if (typeof window !== 'undefined' && recommendations) {
+            window.keywordLabels = [
+              `${recommendations.temperature}°C`,
+              `${recommendations.humidity}%`,
+              colorName,
+              musicLabel
+            ];
+            window.showKeywords = true;
+          }
+
+          const t3 = setTimeout(() => {
+            setLocalShowResults(true);
+            setOrchestratingLock(false);
+            if (typeof window !== 'undefined') {
+              window.showKeywords = false;
+              window.showFinalOrb = false;
+              window.showCenterGlow = false;
+              window.clusterSpin = false;
+              window.mainBlobFade = false;
+              window.newOrbEnter = false;
+            }
+          }, LABEL_HOLD_MS);
+          timers.push(t3);
+        }, ORBIT_SOLO_MS);
+        timers.push(t2);
+      }, TEXT_HOLD_MS);
+      timers.push(t1);
+
+      return () => { timers.forEach((id) => clearTimeout(id)); };
     }
-  }, [typedReason, fullTypedText, orbShowcaseStarted]);
+  }, [typedReason, fullTypedText, orbShowcaseStarted, recommendations]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -234,39 +261,8 @@ export default function MobileControls() {
     }
   }, [reset]);
 
-  const containerStyle = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100vw',
-    height: '100vh',
-    overflow: 'hidden',
-    background: 'transparent',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: isModal ? 'center' : 'flex-start',
-    justifyContent: isModal ? 'center' : 'flex-start',
-    fontFamily: fonts.system,
-    paddingTop: isModal ? '2rem' : spacing.container.paddingTop,
-    paddingRight: isModal ? '2rem' : spacing.container.paddingRight,
-    paddingBottom: isModal ? '2rem' : spacing.container.paddingBottom,
-    paddingLeft: isModal ? '2rem' : spacing.container.paddingLeft,
-    overscrollBehavior: 'none'
-  };
-
-  const wrapperStyle = {
-    background: 'transparent',
-    backdropFilter: 'none',
-    borderRadius: 0,
-    padding: 0,
-    boxShadow: 'none',
-    border: 'none',
-    width: '100%',
-    maxWidth: '640px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: isModal ? 'center' : 'flex-start'
-  };
+  const containerStyle = appContainer(isModal);
+  const wrapperStyle = contentWrapper(isModal);
 
   // 모바일 페이지에서 스크롤 락 (마운트/언마운트 시 적용/해제)
   useEffect(() => {
