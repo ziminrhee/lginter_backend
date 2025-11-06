@@ -125,7 +125,7 @@ export const Blob = styled.div`
 
 /* Same blob, two placements (don't change style, just position/size) */
 export const BlobTR = styled(Blob)`
-  left: auto; right: calc(-1 * var(--kiss)); top: calc(-1 * var(--kiss)); width: 66vmin; height: 66vmin; /* size up */
+  left: auto; right: calc(-1 * var(--kiss)); top: calc(-1 * var(--kiss)); width: 74vmin; height: 74vmin; /* bigger */
   /* orient pink lobe toward center (QR side) */
   --p1x: 40%; --p1y: 68%;
   /* flip vertical orientation without rotating */
@@ -143,7 +143,7 @@ export const BlobTR = styled(Blob)`
     bobFloatTR 10s ease-in-out infinite;
 `;
 export const BlobBL = styled(Blob)`
-  left: calc(-1 * var(--kiss)); top: auto; bottom: calc(-1 * var(--kiss)); width: 126vmin; height: 126vmin; /* size up */
+  left: calc(-1 * var(--kiss)); top: auto; bottom: calc(-1 * var(--kiss)); width: 134vmin; height: 134vmin; /* bigger */
   /* orient pink lobe toward center (QR side) */
   --p1x: 66%; --p1y: 36%;
   @keyframes bobFloatBL { 0%{ transform: translate3d(0,0,0);} 50%{ transform: translate3d(0.8vmin,0.8vmin,0);} 100%{ transform: translate3d(0,0,0);} }
@@ -179,7 +179,7 @@ export const TopMessage = styled.h2`
 
 export const QRFloat = styled.div`
   position: absolute; top: 58vh; left: 50%; transform: translate(-50%, -50%);
-  width: 25vw; height: 25vw; min-width: 220px; min-height: 220px; /* 1/4 width */
+  width: var(--qr-size, 25vw); height: var(--qr-size, 25vw); min-width: 200px; min-height: 200px; /* responsive var with fallback */
   display:flex; align-items:center; justify-content:center; z-index: 1;
   /* only QR visible */
   background: transparent; border: 0; border-radius: 0; box-shadow: none;
@@ -191,13 +191,16 @@ export const FuronMark = styled.div`
   width: clamp(28px, 4.5vw, 82px);
   height: clamp(27px, 4.4vw, 81px);
   left: calc(50% - (clamp(28px, 4.5vw, 82px))/2 - min(29vw, 560px));
-  bottom: 3.5vh;
-  background: url(image.png);
+  /* Support both top-fixed and bottom-fixed placement via CSS vars */
+  top: var(--furon-top, auto);
+  bottom: var(--furon-bottom, 3.5vh);
+  background-image: url(/image.png);
   background-size: contain; background-repeat: no-repeat; background-position: center;
-  mix-blend-mode: color-burn;
+  mix-blend-mode: overlay;
   pointer-events: none;
   transform-origin: 50% 100%;
   @keyframes tiltSpin { 0%{ transform: perspective(600px) rotateX(55deg) rotateZ(0deg); } 100%{ transform: perspective(600px) rotateX(55deg) rotateZ(360deg); } }
   animation: tiltSpin 22s linear infinite;
+  z-index: 1;
 `;
 

@@ -17,7 +17,11 @@ function getQrUrl(base = DEFAULT_QR_BASE) {
 }
 
 function getViewportVars() {
-  return { kiss: '9vmin' };
+  if (typeof window === 'undefined') return { '--kiss': '12vmin' };
+  const w = window.innerWidth || 1080;
+  const h = window.innerHeight || 1920;
+  const qrPx = Math.min(Math.round(w * 0.25), Math.round(h * 0.28));
+  return { '--kiss': '12vmin', '--qr-size': `${qrPx}px` };
 }
 
 export function useSbm1() {
