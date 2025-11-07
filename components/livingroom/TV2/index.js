@@ -3,6 +3,7 @@ import { BlobBackground } from "./blob/blob.ui";
 import { useBlobVars } from "./blob/blob.logic";
 import { TextOverlay } from "./text/text.ui";
 import { useTextRotation } from "./text/text.logic";
+import * as S from './styles';
 
 export default function TV2Controls() {
   // 기본 env (컨트롤 타워 연동 전까지 임시)
@@ -19,19 +20,9 @@ export default function TV2Controls() {
   const text = useTextRotation(env);
 
   return (
-    <div className="tv2-root">
+    <S.Root>
       <BlobBackground cssVars={cssVars} />
       <TextOverlay panels={text.panels} />
-      <style jsx>{`
-        .tv2-root {
-          position: relative;
-          width: 100vw;
-          height: 100vh;
-          overflow: hidden;
-          background: #FFFFFF;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-      `}</style>
-    </div>
+    </S.Root>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import useSocketTV1 from "@/utils/hooks/useSocketTV1";
+import * as S from './styles';
 
 export default function TV1Controls() {
   const [keywords, setKeywords] = useState([]);
@@ -84,14 +85,7 @@ export default function TV1Controls() {
   });
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(180deg, #F9FBFF 0%, #EFF2FF 35%, #E9E9FF 100%)',
-      fontFamily: unifiedFont,
-      padding: '3.2rem 2.4rem 2.4rem',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
+    <S.Root $fontFamily={unifiedFont}>
 
       <h2 className="title">오늘의 감정들은…</h2>
       <form className="quick-input" onSubmit={(e) => { e.preventDefault(); addLocalKeyword(draft); setDraft(''); }}>
@@ -113,7 +107,6 @@ export default function TV1Controls() {
           </div>
         ))}
       </div>
-
-    </div>
+    </S.Root>
   );
 }
