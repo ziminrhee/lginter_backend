@@ -12,8 +12,8 @@ import useLongPressProgress from "./hooks/useLongPressProgress";
 import useSpeechRecognition from "./hooks/useSpeechRecognition";
 import useWeatherGreeting from "./hooks/useWeatherGreeting";
 import useTypewriter from "./hooks/useTypewriter";
-import { fonts, spacing } from "./styles/tokens";
-import { appContainer, contentWrapper } from "./styles/shared/layout";
+import { fonts, spacing } from "./sections/styles/tokens";
+import { AppContainer, ContentWrapper } from "./sections/styles/shared/layout";
 import ListeningOverlay from "./sections/ListeningOverlay";
 
 export default function MobileControls() {
@@ -266,8 +266,7 @@ export default function MobileControls() {
     }
   }, [reset]);
 
-  const containerStyle = appContainer(isModal);
-  const wrapperStyle = contentWrapper(isModal);
+  
 
   // 모바일 페이지에서 스크롤 락 (마운트/언마운트 시 적용/해제)
   useEffect(() => {
@@ -285,8 +284,8 @@ export default function MobileControls() {
   }, []);
 
   return (
-    <div style={containerStyle}>
-      <div style={wrapperStyle}>
+    <AppContainer $isModal={isModal}>
+      <ContentWrapper $isModal={isModal}>
         {!submitted && !isListening && (
           <>
             <HeroText isModal={isModal} onFinalPhase={() => setShowPress(true)} />
@@ -651,8 +650,8 @@ export default function MobileControls() {
           </div>
         )}
         {/* Note: moved keyframe animations to globals.css to avoid JSX parsing issues */}
-      </div>
+      </ContentWrapper>
       <BlobControls />
-    </div>
+    </AppContainer>
   );
 }

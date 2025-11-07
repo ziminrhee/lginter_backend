@@ -9,8 +9,7 @@ export default function PressOverlay({
 
 
   return (
-    <div
-      style={S.container()}
+    <S.Container
       onTouchStart={onPressStart}
       onTouchEnd={onPressEnd}
       onMouseDown={onPressStart}
@@ -18,24 +17,12 @@ export default function PressOverlay({
       onMouseLeave={onPressEnd}
       aria-label="hold for 3 seconds to speak"
     >
-      <div style={S.hitArea}>
-        {/* Soft blurred ripple pulses */}
-        <div
-          style={{
-            ...S.ringPulse,
-            animation: isPressing ? 'softRipple 1600ms ease-out infinite' : 'none'
-          }}
-        />
-        <div
-          style={{
-            ...S.ringPulse,
-            animation: isPressing ? 'softRipple 1600ms ease-out infinite 800ms' : 'none'
-          }}
-        />
-        {/* Core white dot */}
-        <div style={{ ...S.dot, animation: isPressing ? 'glowPulse 1.2s ease-in-out infinite' : 'none' }} />
-      </div>
-    </div>
+      <S.HitArea>
+        <S.RingPulse $anim={isPressing ? 'softRipple 1600ms ease-out infinite' : 'none'} />
+        <S.RingPulse $anim={isPressing ? 'softRipple 1600ms ease-out infinite 800ms' : 'none'} />
+        <S.Dot $anim={isPressing ? 'glowPulse 1.2s ease-in-out infinite' : 'none'} />
+      </S.HitArea>
+    </S.Container>
   );
 }
 

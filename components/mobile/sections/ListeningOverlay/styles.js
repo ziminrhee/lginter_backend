@@ -1,58 +1,74 @@
-// Styles for ListeningOverlay (mobile voice state)
-// Extracted from components/mobile/modules/voice/listening.styles.js
+// Styles for ListeningOverlay (mobile voice state) using styled-components
 
-import { colors, fonts } from '../../styles/tokens';
-import { fullscreenOverlay, centeredCircleWrap, fixedTopLabel } from '../../styles/shared/layout';
+import styled from 'styled-components';
+import { colors, fonts } from '../styles/tokens';
+import { z } from '../styles/shared/elevation';
+import { Overlay } from '../styles/shared/overlay';
+import { CircleWrap as CircleWrapBase } from '../styles/shared/circle';
 
-export const container = () => fullscreenOverlay();
+export const Container = styled(Overlay)``;
 
-export const topLabel = {
-  ...fixedTopLabel(),
-  color: colors.textSecondary,
-  fontFamily: fonts.ui,
-  fontSize: '1rem',
-  fontWeight: 600,
-  opacity: 0.8
-};
+export const TopLabel = styled.div`
+  position: fixed;
+  top: clamp(calc(env(safe-area-inset-top, 0px) + 56px), 12vh, 96px);
+  left: 50%;
+  transform: translateX(-50%);
+  color: ${colors.textSecondary};
+  font-family: ${fonts.ui};
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0.8;
+`;
 
-export const circleWrap = () => ({
-  ...centeredCircleWrap(),
-  filter: 'none'
-});
+export const CircleWrap = styled(CircleWrapBase)`
+  filter: none;
+`;
 
-export const ringBase = {
-  position: 'absolute',
-  left: '50%',
-  top: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: 'calc(100% + 32px)',
-  height: 'calc(100% + 32px)',
-  borderRadius: '50%',
-  background:
-    'radial-gradient(closest-side, rgba(255,255,255,0) 82%, rgba(255,255,255,0.95) 88%, rgba(255,255,255,0.55) 92%, rgba(255,255,255,0) 100%)',
-  filter: 'blur(6px)',
-  mixBlendMode: 'screen',
-  opacity: 0
-};
+export const Ring = styled.div`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% + 32px);
+  height: calc(100% + 32px);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255,255,255,0) 82%, rgba(255,255,255,0.95) 88%, rgba(255,255,255,0.55) 92%, rgba(255,255,255,0) 100%);
+  filter: blur(6px);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: outwardRipple 1600ms ease-out infinite;
+`;
 
-export const text = {
-  color: 'white',
-  fontFamily: fonts.ui,
-  fontSize: 'clamp(1.6rem, 6vw, 2.2rem)',
-  fontWeight: 500,
-  textShadow: '0 4px 18px rgba(0,0,0,0.10)',
-  letterSpacing: '-0.02em',
-  textAlign: 'center',
-  padding: '0 1rem',
-  lineHeight: 1.2,
-  maxWidth: '92%'
-};
+export const RingDelay = styled(Ring)`
+  animation: outwardRipple 1600ms ease-out infinite 800ms;
+`;
 
-export const textFade = (fading, ms = 600) => ({
-  opacity: fading ? 0 : 1,
-  filter: fading ? 'blur(6px)' : 'none',
-  transition: `opacity ${ms}ms ease, filter ${ms}ms ease`
-});
+export const CenterWrap = styled.div`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+`;
+
+export const CenterText = styled.div`
+  color: white;
+  font-family: ${fonts.ui};
+  font-size: clamp(1.6rem, 6vw, 2.2rem);
+  font-weight: 500;
+  text-shadow: 0 4px 18px rgba(0,0,0,0.10);
+  letter-spacing: -0.02em;
+  text-align: center;
+  padding: 0 1rem;
+  line-height: 1.2;
+  max-width: 92%;
+  opacity: ${(p) => (p.$fading ? 0 : 1)};
+  filter: ${(p) => (p.$fading ? 'blur(6px)' : 'none')};
+  transition: ${(p) => `opacity ${p.$fadeMs}ms ease, filter ${p.$fadeMs}ms ease`};
+`;
 
 
 

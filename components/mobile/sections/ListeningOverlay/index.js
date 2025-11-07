@@ -6,29 +6,18 @@ export default function ListeningOverlay({ topLabel: topLabelText = '듣고 있�
 
 
   return (
-    <div style={S.container()}>
-      <div style={S.topLabel}>{topLabelText}</div>
-
-      <div style={S.circleWrap()}>
-        {/* outward ripples */}
-        <div style={{ ...S.ringBase, animation: 'outwardRipple 1600ms ease-out infinite' }} />
-        <div style={{ ...S.ringBase, animation: 'outwardRipple 1600ms ease-out infinite 800ms' }} />
+    <S.Container>
+      <S.TopLabel>{topLabelText}</S.TopLabel>
+      <S.CircleWrap>
+        <S.Ring />
+        <S.RingDelay />
         {centerText ? (
-          <div style={{
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '100%',
-            display: 'flex',
-            justifyContent: 'center',
-            pointerEvents: 'none'
-          }}>
-            <div style={{ ...S.text, ...S.textFade(fading, fadeMs) }}>{centerText}</div>
-          </div>
+          <S.CenterWrap>
+            <S.CenterText $fading={fading} $fadeMs={fadeMs}>{centerText}</S.CenterText>
+          </S.CenterWrap>
         ) : null}
-      </div>
-    </div>
+      </S.CircleWrap>
+    </S.Container>
   );
 }
 

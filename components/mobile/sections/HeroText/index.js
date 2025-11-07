@@ -72,28 +72,17 @@ export default function HeroText({ isModal = false, onFinalPhase }) {
     return <div style={S.root} />;
   }
 
-  const subtextFontSize = 'clamp(1.1rem, 3.7vw, 1.25rem)';
-
   return (
-    <div style={S.root}>
-      <h1 style={{
-        ...S.title(isModal),
-        opacity,
-        transition: `opacity ${fadeMs}ms ease`
-      }}>
+    <S.Container>
+      <S.Title $isModal={isModal} $opacity={opacity} $fadeMs={fadeMs}>
         {line1}<br/>{line2}
-      </h1>
+      </S.Title>
       {subText && (
-        <p style={{
-          ...S.sub(isModal),
-          fontSize: subtextFontSize,
-          opacity,
-          transition: `opacity ${fadeMs}ms ease`
-        }}>
+        <S.Sub $isModal={isModal} $opacity={opacity} $fadeMs={fadeMs}>
           {subText}
-        </p>
+        </S.Sub>
       )}
-    </div>
+    </S.Container>
   );
 }
 

@@ -3,11 +3,11 @@ import * as S from './styles';
 export default function OrchestratingScreen() {
 
   return (
-    <div style={S.container()}>
-      <div style={S.circleWrap()}>
-        <div style={S.text}>ORCHESTRATING</div>
-      </div>
-    </div>
+    <S.Container>
+      <S.CircleWrap>
+        <S.Text>ORCHESTRATING</S.Text>
+      </S.CircleWrap>
+    </S.Container>
   );
 }
 
