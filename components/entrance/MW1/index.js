@@ -1,28 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useMemo } from "react";
 import useSocketMW1 from "@/utils/hooks/useSocketMW1";
 import * as S from './styles';
+import { createSocketHandlers } from './logic';
 
 export default function MW1Controls() {
   const [welcomeData, setWelcomeData] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  const handleDisplayVoice = useCallback((data) => {
-    console.log('🎤 MW1 Component received entrance-new-voice:', data);
-    setWelcomeData({
-      name: data.userId || '손님',
-      text: data.text,
-      emotion: data.emotion
-    });
-    setIsVisible(true);
-    
-    // 8초 후 사라짐 (감정 표시가 있으므로 더 길게)
-    setTimeout(() => {
-      setIsVisible(false);
-      setTimeout(() => setWelcomeData(null), 500); // 페이드아웃 후 데이터 클리어
-    }, 8000);
-  }, []);
+  const handlers = useMemo(() => createSocketHandlers({ setWelcomeData, setIsVisible }), [setWelcomeData, setIsVisible]);
 
-  const { socket } = useSocketMW1({ onEntranceNewVoice: handleDisplayVoice });
+  const { socket } = useSocketMW1({ onEntranceNewVoice: handlers.onEntranceNewVoice });
 
   return (
     <S.Container>

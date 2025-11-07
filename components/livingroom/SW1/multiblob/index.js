@@ -1,25 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useMemo } from "react";
 import useSocketSW1 from "@/utils/hooks/useSocketSW1";
 import * as S from './styles';
+import { createSocketHandlers } from './logic';
 
 export default function SW1Controls() {
   const [climateData, setClimateData] = useState(null);
   const [participantCount, setParticipantCount] = useState(0);
 
-  const handleDeviceDecision = useCallback((data) => {
-    const seenUsers = new Set();
-    if (data.device === 'sw1') {
-      setClimateData({ temperature: data.temperature, humidity: data.humidity });
-      if (data.assignedUsers) {
-        Object.values(data.assignedUsers).forEach((u) => {
-          if (u && u !== 'N/A') seenUsers.add(String(u));
-        });
-        setParticipantCount(seenUsers.size);
-      }
-    }
-  }, []);
+  const handlers = useMemo(() => createSocketHandlers({ setClimateData, setParticipantCount }), [setClimateData, setParticipantCount]);
 
-  const { socket } = useSocketSW1({ onDeviceDecision: handleDeviceDecision });
+  const { socket } = useSocketSW1({ onDeviceDecision: handlers.onDeviceDecision });
 
   const computeMode = (humidity) => {
     if (humidity == null) return '';

@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import useSocketSW2 from "@/utils/hooks/useSocketSW2";
 import * as S from './styles';
+import { createSocketHandlers } from './logic';
 
 export default function SW2Controls() {
   const [ambienceData, setAmbienceData] = useState(null);
@@ -26,33 +27,14 @@ export default function SW2Controls() {
     }
   }, []);
 
-  const handleDeviceDecision = useCallback((data) => {
-    console.log('💡 SW2 received device-decision:', data);
-    if (data.device === 'sw2') {
-      console.log('✅ SW2: Data matched, updating state');
-      setAmbienceData(data);
-      if (data.assignedUsers) {
-        setAssignedUsers(data.assignedUsers);
-        console.log('👥 SW2: Assigned users:', data.assignedUsers);
-      }
-      if (data.song) {
-        searchYouTubeMusic(data.song);
-      }
-    } else {
-      console.log('⏭️ SW2: Data not for this device, skipping');
-    }
-  }, [searchYouTubeMusic]);
-
-  const handleNewDecision = useCallback((msg) => {
-    if (!msg || (msg.target && msg.target !== 'sw2')) return;
-    const env = msg.env || {};
-    const data = { device: 'sw2', lightColor: env.lightColor, song: env.music };
-    setAmbienceData(prev => ({ ...prev, ...data }));
-  }, []);
+  const handlers = useMemo(
+    () => createSocketHandlers({ setAmbienceData, setAssignedUsers, searchYouTubeMusic }),
+    [setAmbienceData, setAssignedUsers, searchYouTubeMusic]
+  );
 
   const { socket } = useSocketSW2({
-    onDeviceDecision: handleDeviceDecision,
-    onDeviceNewDecision: handleNewDecision,
+    onDeviceDecision: handlers.onDeviceDecision,
+    onDeviceNewDecision: handlers.onDeviceNewDecision,
   });
 
   return (
