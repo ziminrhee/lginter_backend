@@ -25,13 +25,18 @@ export default function useSocketMobile() {
     // Socket 즉시 초기화 (fetch 제거로 지연 최소화)
     console.log("Mobile Hook: Initializing socket connection...");
 
+    // Ensure server-side Socket.IO is warm
+    fetch(SOCKET_CONFIG.PATH).catch(() => {});
+
     const s = io({
       path: SOCKET_CONFIG.PATH,
-      // transports: SOCKET_CONFIG.TRANSPORTS,
-      // reconnection: true,
-      // reconnectionDelay: 1000,
-      // reconnectionDelayMax: 5000,
-      // timeout: 10000
+      transports: SOCKET_CONFIG.TRANSPORTS,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 12000,
+      forceNew: true,
+      withCredentials: false,
     });
 
     socketRef.current = s;
