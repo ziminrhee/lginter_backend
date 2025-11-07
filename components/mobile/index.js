@@ -2,20 +2,18 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
 import useOpenAIAnalysis from "@/utils/hooks/useOpenAIAnalysis";
-import LoadingScreen from "./sections/LoadingScreen";
 import OrchestratingScreen from "./sections/OrchestratingScreen";
 import HeroText from "./sections/HeroText";
-import PressOverlay from "./sections/PressOverlay";
-import HiddenForm from "./sections/HiddenForm";
 import BlobControls from "./sections/BlobControls";
 import useLongPressProgress from "./hooks/useLongPressProgress";
 import useSpeechRecognition from "./hooks/useSpeechRecognition";
 import useWeatherGreeting from "./hooks/useWeatherGreeting";
 import useTypewriter from "./hooks/useTypewriter";
-import { fonts, spacing } from "./sections/styles/tokens";
+import useOrchestratingTransitions from './hooks/useOrchestratingTransitions';
+import usePostTypingShowcase from './hooks/usePostTypingShowcase';
+import useScrollLock from './hooks/useScrollLock';
 import { AppContainer, ContentWrapper } from "./sections/styles/shared/layout";
 import ListeningOverlay from "./sections/ListeningOverlay";
-import * as UI from "./styles";
 import ResultsPanel from './views/ResultsPanel';
 import ReasonPanel from './views/ReasonPanel';
 import InputForm from './views/InputForm';
@@ -32,7 +30,6 @@ export default function MobileControls() {
   const [submitted, setSubmitted] = useState(false);
   const [showPress, setShowPress] = useState(false);
   const [listeningStage, setListeningStage] = useState('idle'); // idle | live | finalHold | fadeOut
-  const orchestratingStartAtRef = useRef(null);
   const [orchestratingLock, setOrchestratingLock] = useState(false);
   const orchestrateMinMs = 5500;
   const weatherGreeting = useWeatherGreeting();
@@ -69,47 +66,7 @@ export default function MobileControls() {
     }
   }, [listeningStage, loading]);
 
-  // when loading (orchestrating) begins, fade blob back in over 2s
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (loading) {
-      window.blobOpacityMs = 2000;
-      window.blobOpacity = 1;
-      window.showOrbits = true;
-      window.blobScale = 1; window.blobScaleMs = 300;
-      window.clusterSpin = false;
-      window.mainBlobFade = false;
-      window.newOrbEnter = false;
-      window.orbitRadiusScale = 1;
-      orchestratingStartAtRef.current = Date.now();
-      setOrchestratingLock(true);
-    }
-  }, [loading]);
-
-  // orchestrating hold and merge transition
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (!loading && orchestratingStartAtRef.current && orchestratingLock) {
-      const elapsed = Date.now() - orchestratingStartAtRef.current;
-      const remaining = Math.max(0, orchestrateMinMs - elapsed);
-      const runMerge = () => {
-        // fade + blur out main blob, spawn entering orb, then start cluster spin
-        window.blobOpacityMs = 900;
-        window.mainBlobFade = true;
-        window.newOrbEnter = true;
-        window.clusterSpin = true;
-        // allow next screen after short visual settle
-        setTimeout(() => {
-          setOrchestratingLock(false);
-        }, 1000);
-      };
-      if (remaining > 0) {
-        const t = setTimeout(runMerge, remaining);
-        return () => clearTimeout(t);
-      }
-      runMerge();
-    }
-  }, [loading, orchestratingLock]);
+  useOrchestratingTransitions({ loading, orchestratingLock, setOrchestratingLock, orchestrateMinMs });
 
   // (moved below state/typedReason declarations)
 
@@ -129,103 +86,12 @@ export default function MobileControls() {
     fullTypedText
   );
 
-  // After typing completes, fade out text and run orb showcase for 5s, then show results
-  const [fadeText, setFadeText] = useState(false);
-  const [localShowResults, setLocalShowResults] = useState(false);
-  const [orbShowcaseStarted, setOrbShowcaseStarted] = useState(false);
+  const { fadeText, localShowResults } = usePostTypingShowcase({ fullTypedText, typedReason, recommendations, setOrchestratingLock });
 
   // (Typewriter, weather, press handlers moved to hooks above)
 
-  // When the typewriter finishes: 2s hold -> fade text -> 3s blobs solo -> attach labels -> results
-  useEffect(() => {
-    if (!fullTypedText) return;
-    if (typedReason && typedReason.length >= fullTypedText.length && !orbShowcaseStarted) {
-      setOrbShowcaseStarted(true);
-
-      const TEXT_HOLD_MS = 2000;
-      const ORBIT_SOLO_MS = 3000;
-      const LABEL_HOLD_MS = 2000;
-
-      const timers = [];
-
-      // Precompute labels (not shown yet)
-      let colorName = '조명';
-      let musicLabel = '';
-      if (recommendations) {
-        const hex = (recommendations.lightColor || '').replace('#','');
-        if (hex.length === 6) {
-          const r = parseInt(hex.slice(0,2), 16) / 255;
-          const g = parseInt(hex.slice(2,4), 16) / 255;
-          const b = parseInt(hex.slice(4,6), 16) / 255;
-          const max = Math.max(r, g, b), min = Math.min(r, g, b);
-          let h = 0; const d = max - min;
-          if (d !== 0) {
-            if (max === r) h = ((g - b) / d) * 60;
-            else if (max === g) h = ((b - r) / d) * 60 + 120;
-            else h = ((r - g) / d) * 60 + 240;
-            if (h < 0) h += 360;
-          }
-          if (h < 20 || h >= 340) colorName = '빨간 조명';
-          else if (h < 50) colorName = '주황 조명';
-          else if (h < 70) colorName = '노란 조명';
-          else if (h < 170) colorName = '초록 조명';
-          else if (h < 260) colorName = '파란 조명';
-          else if (h < 310) colorName = '보라 조명';
-          else colorName = '분홍 조명';
-        }
-        const s = (recommendations.song || '').toLowerCase();
-        if (s.includes('jazz')) musicLabel = '재즈';
-        else if (s.includes('rock')) musicLabel = '록';
-        else if (s.includes('hip') || s.includes('rap')) musicLabel = '힙합';
-        else if (s.includes('ballad')) musicLabel = '발라드';
-        else if (s.includes('pop')) musicLabel = '팝';
-        else musicLabel = (recommendations.song || '').split('-')[0].trim();
-      }
-
-      const t1 = setTimeout(() => {
-        // fade out text, start orbits (no labels)
-        setFadeText(true);
-        if (typeof window !== 'undefined') {
-          window.showFinalOrb = true;
-          window.showCenterGlow = true;
-          window.clusterSpin = true;
-          window.showOrbits = true;
-          window.showKeywords = false;
-        }
-
-        const t2 = setTimeout(() => {
-          // attach labels after solo spin
-          if (typeof window !== 'undefined' && recommendations) {
-            window.keywordLabels = [
-              `${recommendations.temperature}°C`,
-              `${recommendations.humidity}%`,
-              colorName,
-              musicLabel
-            ];
-            window.showKeywords = true;
-          }
-
-          const t3 = setTimeout(() => {
-            setLocalShowResults(true);
-            setOrchestratingLock(false);
-            if (typeof window !== 'undefined') {
-              window.showKeywords = false;
-              window.showFinalOrb = false;
-              window.showCenterGlow = false;
-              window.clusterSpin = false;
-              window.mainBlobFade = false;
-              window.newOrbEnter = false;
-            }
-          }, LABEL_HOLD_MS);
-          timers.push(t3);
-        }, ORBIT_SOLO_MS);
-        timers.push(t2);
-      }, TEXT_HOLD_MS);
-      timers.push(t1);
-
-      return () => { timers.forEach((id) => clearTimeout(id)); };
-    }
-  }, [typedReason, fullTypedText, orbShowcaseStarted, recommendations]);
+  // applies scroll lock while mounted
+  useScrollLock();
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
