@@ -19,7 +19,7 @@ import ReasonPanel from './views/ReasonPanel';
 import InputForm from './views/InputForm';
 import SuccessPanel from './views/SuccessPanel';
 
-import BackgroundCanvas from '@/components/BackgroundCanvas';
+import BackgroundCanvas from '@/components/mobile/BackgroundCanvas';
 
 export default function MobileControls() {
   const router = useRouter();
