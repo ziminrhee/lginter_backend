@@ -1,494 +1,337 @@
-import { useState, useEffect, useCallback, useMemo, memo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/router";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
-
-// LG 퓨론 AI 로딩 애니메이션 (간단한 버전) - 메모이제이션
-const SimpleLGLoadingScreen = memo(function SimpleLGLoadingScreen() {
-  return (
-    <div style={{
-      textAlign: 'center',
-      padding: '3rem 2rem',
-      background: 'linear-gradient(135deg, #F3E8FF 0%, #FCEAFE 100%)',
-      borderRadius: '15px'
-    }}>
-      {/* LG ThinQ AI 로딩 애니메이션 (심플) */}
-      <div style={{
-        position: 'relative',
-        width: '80px',
-        height: '80px',
-        margin: '0 auto 1.5rem'
-      }}>
-        <div style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          border: '4px solid #F3E8FF',
-          borderTop: '4px solid #9333EA',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }} />
-        <div style={{
-          position: 'absolute',
-          width: '60px',
-          height: '60px',
-          top: '10px',
-          left: '10px',
-          border: '3px solid #F3E8FF',
-          borderBottom: '3px solid #EC4899',
-          borderRadius: '50%',
-          animation: 'spin 1.5s linear infinite reverse'
-        }} />
-      </div>
-      <p style={{
-        color: '#9333EA',
-        fontSize: '1.2rem',
-        fontWeight: '700',
-        marginBottom: '0.5rem',
-        animation: 'fadeInOut 2s ease-in-out infinite'
-      }}>
-        LG ThinQ AI 분석 중...
-      </p>
-      <p style={{
-        color: '#9333EA',
-        fontSize: '0.9rem',
-        opacity: 0.7
-      }}>
-        당신의 감정에 맞는 최적의 환경을 찾고 있어요 💭
-      </p>
-    </div>
-  );
-});
-
+import useOpenAIAnalysis from "@/utils/hooks/useOpenAIAnalysis";
+import LoadingScreen from "./sections/LoadingScreen";
+import OrchestratingScreen from "./sections/OrchestratingScreen";
+import HeroText from "./sections/HeroText";
+import PressOverlay from "./sections/PressOverlay";
+import HiddenForm from "./sections/HiddenForm";
+import BlobControls from "./sections/BlobControls";
+import useLongPressProgress from "./hooks/useLongPressProgress";
+import useSpeechRecognition from "./hooks/useSpeechRecognition";
+import useWeatherGreeting from "./hooks/useWeatherGreeting";
+import useTypewriter from "./hooks/useTypewriter";
+import { fonts, spacing } from "./styles/tokens";
+import { appContainer, contentWrapper } from "./modules/shared/layout";
+import ListeningOverlay from "./sections/ListeningOverlay";
 
 export default function MobileControls() {
-  const { emitNewVoice, socket } = useSocketMobile();
-  const [userId] = useState(() => `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const router = useRouter();
+  const isModal = router?.query?.variant === 'modal';
+  const { emitNewName, emitNewVoice, socket } = useSocketMobile();
+  const { loading, recommendations, analyze, reset } = useOpenAIAnalysis(socket);
+  const [name, setName] = useState("");
   const [mood, setMood] = useState("");
+  const [liveTranscript, setLiveTranscript] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [recommendations, setRecommendations] = useState(null);
-  const [weatherGreeting, setWeatherGreeting] = useState(null);
-  const [isListening, setIsListening] = useState(false);
-  const [showReason, setShowReason] = useState(false);
-  const [typedReason, setTypedReason] = useState("");
-  const [showHighlights, setShowHighlights] = useState(false);
-  const [showResults, setShowResults] = useState(false);
+  const [showPress, setShowPress] = useState(false);
+  const [listeningStage, setListeningStage] = useState('idle'); // idle | live | finalHold | fadeOut
+  const orchestratingStartAtRef = useRef(null);
+  const [orchestratingLock, setOrchestratingLock] = useState(false);
+  const orchestrateMinMs = 5500;
+  const weatherGreeting = useWeatherGreeting();
 
-  // 날씨 기반 인사말 가져오기 (타임아웃 설정)
-  useEffect(() => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3초 타임아웃
-    
-    fetch('/api/weather', { signal: controller.signal })
-      .then(res => res.json())
-      .then(data => {
-        clearTimeout(timeoutId);
-        console.log('🌤️ Weather greeting:', data);
-        setWeatherGreeting(data);
-      })
-      .catch(err => {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-          console.log('⏱️ Weather API timeout - continuing without weather');
-        } else {
-          console.error('Weather API error:', err);
-        }
-        // 에러 발생시에도 계속 진행 (날씨 없이)
-      });
-    
-    return () => {
-      clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, []);
-
-  // 음성 인식 기능 (메모이제이션)
-  const startVoiceRecognition = useCallback(() => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('❌ 음성 인식을 지원하지 않는 브라우저입니다.\n\n직접 입력해주세요. 🖊️');
-      return;
+  const { isListening, startVoiceRecognition } = useSpeechRecognition({
+    onStart: () => {
+      setListeningStage('live');
+      if (typeof window !== 'undefined') {
+        window.blobOpacityMs = 200; // ensure visible when starting listen
+        window.blobOpacity = 1;
+      }
+    },
+    onInterim: (text) => {
+      setLiveTranscript(text);
+    },
+    onResult: ({ transcript }) => {
+      setMood(transcript);
+      setLiveTranscript("");
+      if (!name.trim()) setName('사용자');
+      // hold final text for 1s then fade out
+      setListeningStage('finalHold');
+      setTimeout(() => setListeningStage('fadeOut'), 1000);
+      // after fade out completes, remove overlay
+      setTimeout(() => setListeningStage('idle'), 1600);
     }
+  });
 
-    try {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'ko-KR';
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        console.log('🎤 음성 인식 시작됨');
-      };
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        const confidence = event.results[0][0].confidence;
-        setMood(transcript);
-        console.log('✅ 인식 성공:', transcript, '(정확도:', Math.round(confidence * 100) + '%)');
-      };
-
-      recognition.onerror = (event) => {
-        console.error('❌ 음성 인식 오류:', event.error);
-        setIsListening(false);
-        
-        let errorMsg = '';
-        if (event.error === 'no-speech') {
-          errorMsg = '음성이 감지되지 않았습니다.\n\n직접 입력해주세요. 🖊️';
-        } else if (event.error === 'not-allowed') {
-          errorMsg = '⚠️ 마이크 권한이 필요합니다.\n\n직접 입력하거나, 브라우저 설정에서 마이크 권한을 허용해주세요.\n\n💡 팁: HTTP 연결에서는 보안상 마이크가 제한될 수 있습니다.';
-        } else if (event.error === 'network') {
-          errorMsg = '네트워크 오류가 발생했습니다.\n\n직접 입력해주세요. 🖊️';
-        } else {
-          errorMsg = '음성 인식이 불가능합니다.\n\n직접 입력해주세요. 🖊️';
-        }
-        
-        // 에러 발생 시에도 입력창에 포커스
-        if (errorMsg) {
-          alert(errorMsg);
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-        console.log('🎤 음성 인식 종료');
-      };
-
-      console.log('🎤 음성 인식 시작 시도...');
-      recognition.start();
-    } catch (error) {
-      console.error('음성 인식 초기화 실패:', error);
-      alert('음성 인식을 시작할 수 없습니다.\n\n직접 입력해주세요. 🖊️');
-      setIsListening(false);
-    }
-  }, []);
-
-  // 타이핑 애니메이션 효과 (최적화)
+  // react to listening stage for blob opacity transitions
   useEffect(() => {
-    if (!recommendations || !recommendations.reason) return;
-    
-    setShowReason(true);
-    const text = recommendations.reason;
-    let index = 0;
-    
-    const typingInterval = setInterval(() => {
-      if (index < text.length) {
-        // 2글자씩 업데이트하여 렌더링 횟수 절반으로 감소
-        setTypedReason(text.slice(0, index + 2));
-        index += 2;
-      } else {
-        clearInterval(typingInterval);
-        // 타이핑 완료 후 0.5초 대기 후 하이라이트 표시
+    if (typeof window === 'undefined') return;
+    if (listeningStage === 'fadeOut' && !loading) {
+      window.blobOpacityMs = 600;
+      window.blobOpacity = 0; // fade to fully transparent so background만 노출
+    }
+  }, [listeningStage, loading]);
+
+  // when loading (orchestrating) begins, fade blob back in over 2s
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (loading) {
+      window.blobOpacityMs = 2000;
+      window.blobOpacity = 1;
+      window.showOrbits = true;
+      window.blobScale = 1; window.blobScaleMs = 300;
+      window.clusterSpin = false;
+      window.mainBlobFade = false;
+      window.newOrbEnter = false;
+      window.orbitRadiusScale = 1;
+      orchestratingStartAtRef.current = Date.now();
+      setOrchestratingLock(true);
+    }
+  }, [loading]);
+
+  // orchestrating hold and merge transition
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!loading && orchestratingStartAtRef.current && orchestratingLock) {
+      const elapsed = Date.now() - orchestratingStartAtRef.current;
+      const remaining = Math.max(0, orchestrateMinMs - elapsed);
+      const runMerge = () => {
+        // fade + blur out main blob, spawn entering orb, then start cluster spin
+        window.blobOpacityMs = 900;
+        window.mainBlobFade = true;
+        window.newOrbEnter = true;
+        window.clusterSpin = true;
+        // allow next screen after short visual settle
         setTimeout(() => {
-          setShowHighlights(true);
-          // 하이라이트 4초 후 결과 표시 (6초에서 4초로 단축)
-          setTimeout(() => {
-            setShowResults(true);
-          }, 4000);
-        }, 500);
+          setOrchestratingLock(false);
+        }, 1000);
+      };
+      if (remaining > 0) {
+        const t = setTimeout(runMerge, remaining);
+        return () => clearTimeout(t);
       }
-    }, 40); // 40ms마다 2글자씩 (전체 속도는 비슷하지만 렌더링 횟수 절반)
-
-    return () => clearInterval(typingInterval);
-  }, [recommendations]);
-
-  // Join user-specific room on connect and listen for decisions
-  useEffect(() => {
-    if (!socket || !userId) return;
-    
-    const handleConnect = () => {
-      console.log('📱 Mobile connected, joining user room:', userId);
-      socket.emit('mobile-init', { userId });
-    };
-    
-    const handleDecision = (data) => {
-      console.log('📱 Mobile received decision:', data);
-      if (data?.params) {
-        setRecommendations({
-          temperature: data.params.temp,
-          humidity: data.params.humidity,
-          lightColor: data.params.lightColor,
-          song: data.params.music,
-          reason: data.reason || 'AI generated'
-        });
-        setLoading(false);
-      }
-    };
-    
-    // If already connected, emit init
-    if (socket.connected) {
-      handleConnect();
+      runMerge();
     }
-    
-    socket.on('connect', handleConnect);
-    socket.on('mobile-new-decision', handleDecision);
-    
-    return () => {
-      socket.off('connect', handleConnect);
-      socket.off('mobile-new-decision', handleDecision);
-    };
-  }, [socket, userId]);
+  }, [loading, orchestratingLock]);
+
+  // (moved below state/typedReason declarations)
+
+  const { pressProgress, handlePressStart, handlePressEnd } = useLongPressProgress({
+    onCompleted: () => startVoiceRecognition()
+  });
+
+  // Build the 4-paragraph message for the typewriter effect
+  const p1 = mood ? `“${mood}” 기분에 맞춰` : '기분에 맞춰';
+  const p2 = recommendations ? `온도는 ${recommendations.temperature}°C로, 습도는 ${recommendations.humidity}%로 설정할게요.` : '';
+  const p3 = recommendations ? `집 안의 조명은 #${String(recommendations?.lightColor || '').replace('#','')} 색감으로 바꿔 공간을 부드럽게 밝힐게요.` : '';
+  const p4 = recommendations ? `무드에 맞춘 ${recommendations.song}을 재생할게요.` : '';
+  const paragraphs = [p1, p2, p3, p4];
+  const fullTypedText = recommendations ? paragraphs.join('\n\n') : null;
+
+  const { typedReason, showReason, showHighlights, showResults: typewriterShowResults } = useTypewriter(
+    fullTypedText
+  );
+
+  // After typing completes, fade out text and run orb showcase for 5s, then show results
+  const [fadeText, setFadeText] = useState(false);
+  const [localShowResults, setLocalShowResults] = useState(false);
+  const [orbShowcaseStarted, setOrbShowcaseStarted] = useState(false);
+
+  // (Typewriter, weather, press handlers moved to hooks above)
+
+  // When the typewriter finishes: 2s hold -> fade text -> 3s blobs solo -> attach labels -> results
+  useEffect(() => {
+    if (!fullTypedText) return;
+    if (typedReason && typedReason.length >= fullTypedText.length && !orbShowcaseStarted) {
+      setOrbShowcaseStarted(true);
+
+      const TEXT_HOLD_MS = 2000;
+      const ORBIT_SOLO_MS = 3000;
+      const LABEL_HOLD_MS = 2000;
+
+      const timers = [];
+
+      // Precompute labels (not shown yet)
+      let colorName = '조명';
+      let musicLabel = '';
+      if (recommendations) {
+        const hex = (recommendations.lightColor || '').replace('#','');
+        if (hex.length === 6) {
+          const r = parseInt(hex.slice(0,2), 16) / 255;
+          const g = parseInt(hex.slice(2,4), 16) / 255;
+          const b = parseInt(hex.slice(4,6), 16) / 255;
+          const max = Math.max(r, g, b), min = Math.min(r, g, b);
+          let h = 0; const d = max - min;
+          if (d !== 0) {
+            if (max === r) h = ((g - b) / d) * 60;
+            else if (max === g) h = ((b - r) / d) * 60 + 120;
+            else h = ((r - g) / d) * 60 + 240;
+            if (h < 0) h += 360;
+          }
+          if (h < 20 || h >= 340) colorName = '빨간 조명';
+          else if (h < 50) colorName = '주황 조명';
+          else if (h < 70) colorName = '노란 조명';
+          else if (h < 170) colorName = '초록 조명';
+          else if (h < 260) colorName = '파란 조명';
+          else if (h < 310) colorName = '보라 조명';
+          else colorName = '분홍 조명';
+        }
+        const s = (recommendations.song || '').toLowerCase();
+        if (s.includes('jazz')) musicLabel = '재즈';
+        else if (s.includes('rock')) musicLabel = '록';
+        else if (s.includes('hip') || s.includes('rap')) musicLabel = '힙합';
+        else if (s.includes('ballad')) musicLabel = '발라드';
+        else if (s.includes('pop')) musicLabel = '팝';
+        else musicLabel = (recommendations.song || '').split('-')[0].trim();
+      }
+
+      const t1 = setTimeout(() => {
+        // fade out text, start orbits (no labels)
+        setFadeText(true);
+        if (typeof window !== 'undefined') {
+          window.showFinalOrb = true;
+          window.showCenterGlow = true;
+          window.clusterSpin = true;
+          window.showOrbits = true;
+          window.showKeywords = false;
+        }
+
+        const t2 = setTimeout(() => {
+          // attach labels after solo spin
+          if (typeof window !== 'undefined' && recommendations) {
+            window.keywordLabels = [
+              `${recommendations.temperature}°C`,
+              `${recommendations.humidity}%`,
+              colorName,
+              musicLabel
+            ];
+            window.showKeywords = true;
+          }
+
+          const t3 = setTimeout(() => {
+            setLocalShowResults(true);
+            setOrchestratingLock(false);
+            if (typeof window !== 'undefined') {
+              window.showKeywords = false;
+              window.showFinalOrb = false;
+              window.showCenterGlow = false;
+              window.clusterSpin = false;
+              window.mainBlobFade = false;
+              window.newOrbEnter = false;
+            }
+          }, LABEL_HOLD_MS);
+          timers.push(t3);
+        }, ORBIT_SOLO_MS);
+        timers.push(t2);
+      }, TEXT_HOLD_MS);
+      timers.push(t1);
+
+      return () => { timers.forEach((id) => clearTimeout(id)); };
+    }
+  }, [typedReason, fullTypedText, orbShowcaseStarted, recommendations]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    if (!mood.trim()) {
-      console.log('❌ Mobile: Mood is empty');
+    if (!name.trim() || !mood.trim()) {
+      console.log('❌ Mobile: Name or mood is empty');
       return;
     }
     
-    console.log('📱 Mobile: Submitting data:', { userId, mood: mood.trim() });
+    console.log('📱 Mobile: Submitting data:', { name: name.trim(), mood: mood.trim() });
     
-    // 감정 전송 (Server가 OpenAI 호출)
-    emitNewVoice(mood.trim(), mood.trim(), 0.8, { userId });
+    // 이름과 기분 전송
+    emitNewName(name.trim(), { mood: mood.trim() });
+    emitNewVoice(mood.trim(), mood.trim(), 0.8, { name: name.trim() });
     
-    console.log('✅ Mobile: Data emitted successfully with userId:', userId);
+    console.log('✅ Mobile: Data emitted successfully');
     
-    // 로딩 시작 (AI 응답 대기)
+    // OpenAI 분석 시작
     setSubmitted(true);
-    setLoading(true);
-  }, [userId, mood, emitNewVoice]);
+    await analyze(name.trim(), mood.trim());
+  }, [name, mood, emitNewName, emitNewVoice, analyze]);
 
   const handleReset = useCallback(() => {
     setSubmitted(false);
-    setLoading(false);
-    setRecommendations(null);
+    reset();
+    setName("");
     setMood("");
+    setShowPress(false);
     setShowReason(false);
     setTypedReason("");
     setShowHighlights(false);
     setShowResults(false);
+    setFadeText(false);
+    setLocalShowResults(false);
+    setOrbShowcaseStarted(false);
+    if (typeof window !== 'undefined') {
+      window.showFinalOrb = false;
+      window.showCenterGlow = false;
+    }
+  }, [reset]);
+
+  const containerStyle = appContainer(isModal);
+  const wrapperStyle = contentWrapper(isModal);
+
+  // 모바일 페이지에서 스크롤 락 (마운트/언마운트 시 적용/해제)
+  useEffect(() => {
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevOverscroll = document.documentElement.style.overscrollBehavior;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.overscrollBehavior = 'none';
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.documentElement.style.overscrollBehavior = prevOverscroll;
+    };
   }, []);
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 50%, #FCEAFE 100%)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      padding: '2rem'
-    }}>
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.8)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '25px',
-        padding: '2.5rem',
-        boxShadow: '0 20px 60px rgba(147, 51, 234, 0.15)',
-        border: '1px solid rgba(147, 51, 234, 0.1)',
-        width: '100%',
-        maxWidth: '420px'
-      }}>
-        {!submitted && (
+    <div style={containerStyle}>
+      <div style={wrapperStyle}>
+        {!submitted && !isListening && (
           <>
-            <h1 style={{
-              fontSize: '2rem',
-              background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              marginBottom: '0.5rem',
-              fontWeight: '700',
-              textAlign: 'center'
-            }}>
-              환영합니다!
-            </h1>
+            <HeroText isModal={isModal} onFinalPhase={() => setShowPress(true)} />
             
-            {/* 날씨 기반 인사말 - 랜딩 페이지에만 */}
+            {/* 날씨 기반 인사말 - 기능 유지하되 숨김 */}
             {weatherGreeting && (
-              <div style={{
-                background: 'linear-gradient(135deg, #F3E8FF 0%, #FCEAFE 100%)',
-                borderRadius: '15px',
-                padding: '1rem',
-                marginBottom: '1.5rem',
-                textAlign: 'center'
-              }}>
-                <p style={{
-                  color: '#9333EA',
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                  margin: 0,
-                  fontWeight: '500'
-                }}>
-                  {weatherGreeting.fullGreeting}
-                </p>
+              <div style={{ display: 'none' }}>
+                <p>{weatherGreeting.fullGreeting}</p>
               </div>
             )}
             
-            <p style={{
-              color: '#9333EA',
-              fontSize: '1rem',
-              marginBottom: '2rem',
-              opacity: 0.7,
-              textAlign: 'center'
-            }}>
-              지금 기분을 말씀해주세요
+            {/* 설명 문구 - 기능 유지하되 숨김 */}
+            <p style={{ display: 'none' }}>
+              이름과 기분을 입력해주세요
             </p>
           </>
         )}
         
         {!submitted ? (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div>
-              <label style={{
-                display: 'block',
-                color: '#9333EA',
-                fontWeight: '600',
-                marginBottom: '0.5rem',
-                fontSize: '0.95rem'
-              }}>
-                지금 기분
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  value={mood}
-                  onChange={(e) => setMood(e.target.value)}
-                  placeholder="예: 행복해요, 설레요, 편안해요"
-                  style={{
-                    width: '100%',
-                    padding: '1rem',
-                    paddingRight: '4rem',
-                    border: '2px solid #F3E8FF',
-                    borderRadius: '15px',
-                    fontSize: '1rem',
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    outline: 'none',
-                    transition: 'all 0.3s',
-                    boxSizing: 'border-box'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#9333EA'}
-                  onBlur={(e) => e.target.style.borderColor = '#F3E8FF'}
-                />
-                <button
-                  type="button"
-                  onClick={startVoiceRecognition}
-                  disabled={isListening}
-                  style={{
-                    position: 'absolute',
-                    right: '0.75rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: isListening ? '#EC4899' : 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
-                    border: 'none',
-                    borderRadius: '10px',
-                    padding: '0.5rem 0.75rem',
-                    cursor: isListening ? 'not-allowed' : 'pointer',
-                    fontSize: '1.2rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.3s',
-                    animation: isListening ? 'pulse 1s infinite' : 'none'
-                  }}
-                  title="음성 입력"
-                >
-                  🎤
-                </button>
-              </div>
-              {isListening && (
-                <p style={{
-                  color: '#EC4899',
-                  fontSize: '0.85rem',
-                  marginTop: '0.5rem',
-                  textAlign: 'center',
-                  fontWeight: '500'
-                }}>
-                  🎤 듣고 있습니다...
-                </p>
-              )}
-            </div>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+            <HiddenForm
+              name={name}
+              onNameChange={setName}
+              mood={mood}
+              onMoodChange={setMood}
+            />
             
-            <button
-              type="submit"
-              style={{
-                width: '100%',
-                padding: '1rem',
-                background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '15px',
-                fontSize: '1.1rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 10px 30px rgba(147, 51, 234, 0.3)',
-                transition: 'all 0.3s'
-              }}
-              onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
-              onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
-            >
-              입력 완료
-            </button>
+            {showPress && !isListening && (
+              <PressOverlay
+                pressProgress={pressProgress}
+                onPressStart={handlePressStart}
+                onPressEnd={handlePressEnd}
+              />
+            )}
+            {(isListening || listeningStage === 'finalHold' || listeningStage === 'fadeOut') && (
+              <ListeningOverlay
+                topLabel="듣고 있어요"
+                centerText={(listeningStage === 'finalHold' && mood) ? `“${mood}”` : (liveTranscript ? `“${liveTranscript}”` : undefined)}
+                stage={listeningStage === 'fadeOut' ? 'fadeOut' : 'live'}
+              />
+            )}
           </form>
-        ) : loading ? (
-          <SimpleLGLoadingScreen />
-        ) : recommendations && !showReason ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '2rem'
-          }}>
-            <p style={{ color: '#9333EA', fontSize: '1rem' }}>결과 준비 중...</p>
-          </div>
-        ) : recommendations && showReason && !showResults ? (
-          <div style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: '2rem',
-            boxSizing: 'border-box',
-            overflow: 'auto'
-          }}>
-            <p style={{
-              color: '#9333EA',
-              fontSize: '1.1rem',
-              lineHeight: '1.9',
-              fontFamily: 'monospace',
-              margin: 0,
-              wordBreak: 'keep-all',
-              overflowWrap: 'break-word',
-              textAlign: 'left',
-              width: '100%'
-            }}>
-              {typedReason.split(/(\d+°C|\d+%|#[A-F0-9]{6}|[가-힣]+해요|[가-힣]+함|온도|습도|조명|음악|색상)/).map((part, index) => {
-                const isKeyword = /\d+°C|\d+%|#[A-F0-9]{6}|[가-힣]+해요|[가-힣]+함|온도|습도|조명|음악|색상/.test(part);
-                if (showHighlights && isKeyword) {
-                  return (
-                    <span
-                      key={index}
-                      style={{
-                        background: 'linear-gradient(135deg, #9333EA50 0%, #EC489950 100%)',
-                        padding: '0.2rem 0.5rem',
-                        borderRadius: '6px',
-                        fontWeight: '900',
-                        color: '#9333EA',
-                        boxShadow: '0 2px 12px rgba(147, 51, 234, 0.4)',
-                        display: 'inline-block'
-                      }}
-                    >
-                      {part}
-                    </span>
-                  );
-                }
-                return <span key={index}>{part}</span>;
-              })}
-              <span style={{
-                display: 'inline-block',
-                width: '2px',
-                height: '1.2rem',
-                background: '#9333EA',
-                marginLeft: '3px',
-                animation: typedReason.length < recommendations.reason.length ? 'blink 1s infinite' : 'none',
-                verticalAlign: 'middle'
-              }} />
-            </p>
-          </div>
-        ) : recommendations && showResults ? (
+        ) : (loading || orchestratingLock) ? (
+          <>
+            <OrchestratingScreen />
+          </>
+        ) : recommendations && localShowResults ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* 추천 결과 표시 */}
-            {showResults && (
+            {(
               <>
                 <div style={{
                   background: 'linear-gradient(135deg, #F3E8FF 0%, #FCEAFE 100%)',
@@ -503,7 +346,194 @@ export default function MobileControls() {
                     marginBottom: '1rem',
                     textAlign: 'center'
                   }}>
-                    🎯 AI 추천 결과
+                    🎯 {(name || '사용자')}님을 위한 추천
+                  </h3>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  padding: '1rem',
+                  borderRadius: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🌡️</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#9333EA' }}>
+                    {recommendations.temperature}°C
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#9333EA', opacity: 0.7, marginTop: '0.25rem' }}>
+                    온도
+                  </div>
+                </div>
+                
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  padding: '1rem',
+                  borderRadius: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💧</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#9333EA' }}>
+                    {recommendations.humidity}%
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#9333EA', opacity: 0.7, marginTop: '0.25rem' }}>
+                    습도
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.8)',
+                padding: '1rem',
+                borderRadius: '12px',
+                marginBottom: '1rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{
+                    width: '50px',
+                    height: '50px',
+                    borderRadius: '10px',
+                    background: recommendations.lightColor,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                  }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.85rem', color: '#9333EA', opacity: 0.7, marginBottom: '0.25rem' }}>
+                      💡 조명 색상
+                    </div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#9333EA' }}>
+                      {recommendations.lightColor}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.8)',
+                padding: '1rem',
+                borderRadius: '12px'
+              }}>
+                <div style={{ fontSize: '0.85rem', color: '#9333EA', opacity: 0.7, marginBottom: '0.5rem' }}>
+                  🎵 추천 음악
+                </div>
+                <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#9333EA' }}>
+                  {recommendations.song}
+                </div>
+              </div>
+            </div>
+            
+            
+            <button
+              onClick={handleReset}
+              style={{
+                width: '100%',
+                padding: '1rem',
+                background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '15px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 10px 30px rgba(147, 51, 234, 0.3)'
+              }}
+            >
+              다시 입력하기
+            </button>
+              </>
+            )}
+          </div>
+        ) : recommendations && showReason ? (
+          <div style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'stretch',
+            padding: '2rem',
+            boxSizing: 'border-box',
+            overflow: 'auto'
+          }}>
+            <div style={{
+              width: '86%',
+              margin: '0 auto',
+              wordBreak: 'keep-all',
+              overflowWrap: 'break-word',
+              textAlign: 'center',
+              fontFamily: fonts.ui,
+              color: '#111',
+              opacity: fadeText ? 0 : 1,
+              filter: fadeText ? 'blur(6px)' : 'none',
+              transition: 'opacity 1200ms ease, filter 1200ms ease'
+            }}>
+              {(() => {
+                const typed = typedReason || '';
+                const total = fullTypedText ? fullTypedText.length : 0;
+                const isTyping = Boolean(fullTypedText) && typed.length < total;
+                const newlineLen = 2; // "\n\n"
+                let remaining = typed.length;
+                let activeIdx = 0;
+                const displayBlocks = paragraphs.map((para, i) => {
+                  if (remaining <= 0) return '';
+                  const take = Math.min(para.length, remaining);
+                  const out = para.slice(0, take);
+                  remaining -= take;
+                  if (remaining > 0 && i < paragraphs.length - 1) {
+                    // consume the two newline characters between paragraphs
+                    remaining = Math.max(0, remaining - newlineLen);
+                  }
+                  if (remaining > 0) activeIdx = i + 1; else activeIdx = i; // currently typing this index
+                  return out;
+                });
+                const keywordRegex = /(\d+°C|\d+%|#[A-Fa-f0-9]{6}|온도|습도|조명|음악|색상)/g;
+                return displayBlocks.map((block, idx) => (
+                  <p key={idx} style={{
+                    fontSize: '1.25rem',
+                    lineHeight: 1.6,
+                    fontWeight: idx === 0 ? 800 : 500,
+                    marginTop: idx === 0 ? 0 : '1.5rem'
+                  }}>
+                    {showHighlights
+                      ? block.split(keywordRegex).map((part, i) => (
+                          keywordRegex.test(part)
+                            ? <span key={i} style={{ fontWeight: 800 }}>{part}</span>
+                            : <span key={i}>{part}</span>
+                        ))
+                      : block}
+                    {isTyping && idx === activeIdx ? (
+                      <span style={{
+                        display: 'inline-block',
+                        width: '2px',
+                        height: '1.2rem',
+                        background: '#000',
+                        marginLeft: '3px',
+                        animation: 'blink 1s infinite',
+                        verticalAlign: 'middle'
+                      }} />
+                    ) : null}
+                  </p>
+                ));
+              })()}
+            </div>
+          </div>
+        ) : recommendations && localShowResults ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* 추천 결과 표시 */}
+            {(
+              <>
+                <div style={{
+                  background: 'linear-gradient(135deg, #F3E8FF 0%, #FCEAFE 100%)',
+                  borderRadius: '15px',
+                  padding: '1.5rem',
+                  animation: 'slideInUp 0.5s ease-out'
+                }}>
+                  <h3 style={{
+                    color: '#9333EA',
+                    fontSize: '1.3rem',
+                    fontWeight: '700',
+                    marginBottom: '1rem',
+                    textAlign: 'center'
+                  }}>
+                    🎯 {(name || '사용자')}님을 위한 추천
                   </h3>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
@@ -615,56 +645,9 @@ export default function MobileControls() {
             </p>
           </div>
         )}
-        
-        <style jsx>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-          
-          @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(0.9); }
-          }
-          
-          @keyframes fadeInOut {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-          }
-          
-          @keyframes blink {
-            0%, 50%, 100% { opacity: 1; }
-            25%, 75% { opacity: 0; }
-          }
-          
-          @keyframes highlightFade {
-            0% { 
-              background: linear-gradient(135deg, #9333EA60 0%, #EC489960 100%);
-              transform: scale(1.05);
-            }
-            100% { 
-              background: linear-gradient(135deg, #9333EA20 0%, #EC489920 100%);
-              transform: scale(1);
-            }
-          }
-          
-          @keyframes slideInUp {
-            0% { 
-              opacity: 0;
-              transform: translateY(30px);
-            }
-            100% { 
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-          
-          @keyframes blink {
-            0%, 50%, 100% { opacity: 1; }
-            25%, 75% { opacity: 0; }
-          }
-        `}</style>
+        {/* Note: moved keyframe animations to globals.css to avoid JSX parsing issues */}
       </div>
+      <BlobControls />
     </div>
   );
 }
