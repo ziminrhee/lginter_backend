@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Backend environment for mobile-tv-display interaction",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --experimental-https",
     "build": "next build",
-    "start": "next start"
+    "start": "next start -H 0.0.0.0"
   },
   "author": "",
   "license": "ISC",
