@@ -231,9 +231,14 @@ export default function MobileControls() {
     
     console.log('📱 Mobile: Submitting data:', { name: name.trim(), mood: mood.trim() });
     
-    // 이름과 기분 전송
-    emitNewName(name.trim(), { mood: mood.trim() });
-    emitNewVoice(mood.trim(), mood.trim(), 0.8, { name: name.trim() });
+    // 이름과 기분 전송 (서버 스키마에 맞춰 userId 포함)
+    const userId = name.trim();
+    try {
+      // 방 참가 (타겟 전송을 위해)
+      socket?.emit('mobile-init', { userId });
+    } catch {}
+    emitNewName(name.trim(), { userId, mood: mood.trim() });
+    emitNewVoice(mood.trim(), mood.trim(), 0.8, { userId, name: userId });
     
     console.log('✅ Mobile: Data emitted successfully');
     
