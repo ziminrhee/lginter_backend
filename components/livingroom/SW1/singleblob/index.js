@@ -5,6 +5,9 @@ import * as S from './styles';
 export default function SW1Controls() {
   const [climateData, setClimateData] = useState(null);
   const [participantCount, setParticipantCount] = useState(0);
+  const [dotCount, setDotCount] = useState(0);
+  const BACKGROUND_URL = "/sw1-bg.png"; // place exported 2160x3840 frame in public/sw1-bg.png
+  const ELLIPSE_URL = "/sw1-ellipse.png"; // place exported ellipse in public/sw1-ellipse.png
 
   const handleDeviceDecision = useCallback((data) => {
     const seenUsers = new Set();
@@ -21,6 +24,13 @@ export default function SW1Controls() {
 
   const { socket } = useSocketSW1({ onDeviceDecision: handleDeviceDecision });
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setDotCount((count) => (count >= 3 ? 0 : count + 1));
+    }, 500);
+    return () => clearInterval(intervalId);
+  }, []);
+
   const computeMode = (humidity) => {
     if (humidity == null) return '';
     if (humidity >= 65) return '강력 제습';
@@ -36,13 +46,21 @@ export default function SW1Controls() {
   // animation and blobs removed per request
 
   return (
-    <S.Root>
-      <S.TopStatus>가족 구성원 4명을 위한 조율중...</S.TopStatus>
+    <S.Root $backgroundUrl={BACKGROUND_URL}>
+      <S.MotionProps />
+      <S.TopStatus>
+        <span>가족 구성원 0 명을 위한 조율중</span>
+        <S.Dots aria-hidden="true">
+          <S.Dot $visible={dotCount >= 1}>.</S.Dot>
+          <S.Dot $visible={dotCount >= 2}>.</S.Dot>
+          <S.Dot $visible={dotCount >= 3}>.</S.Dot>
+        </S.Dots>
+      </S.TopStatus>
       <S.Stage>
-        <S.CircleContainer>
-          <S.BaseWhite />
-          <S.GradientBlur />
-        </S.CircleContainer>
+        <S.GradientEllipse />
+        <S.EllipseLayer>
+          <S.Ellipse $ellipseUrl={ELLIPSE_URL} />
+        </S.EllipseLayer>
         <S.CenterTextWrap>
           <S.CenterTemp>{`${baseTemp}°C`}</S.CenterTemp>
           <S.CenterMode>{computeMode(baseHum)}</S.CenterMode>

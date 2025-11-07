@@ -25,44 +25,44 @@ const GlobalProps = createGlobalStyle`
 `;
 
 const l1 = keyframes`
-  0% { --p1x: 74%; --p1y: 50%; }
-  50% { --p1x: 56%; --p1y: 40%; }
-  100% { --p1x: 68%; --p1y: 66%; }
+  0%   { --p1x: 8%;  --p1y: 12%; }
+  50%  { --p1x: 92%; --p1y: 88%; }
+  100% { --p1x: 6%;  --p1y: 94%; }
 `;
 const l2 = keyframes`
-  0% { --p2x: 44%; --p2y: 70%; }
-  50% { --p2x: 60%; --p2y: 56%; }
-  100% { --p2x: 38%; --p2y: 76%; }
+  0%   { --p2x: 92%; --p2y: 84%; }
+  50%  { --p2x: 12%; --p2y: 16%; }
+  100% { --p2x: 88%; --p2y: 10%; }
 `;
 const l3 = keyframes`
-  0% { --p3x: 30%; --p3y: 26%; }
-  50% { --p3x: 46%; --p3y: 36%; }
-  100% { --p3x: 24%; --p3y: 22%; }
+  0%   { --p3x: 15%; --p3y: 85%; }
+  50%  { --p3x: 85%; --p3y: 15%; }
+  100% { --p3x: 20%; --p3y: 80%; }
 `;
 const l4 = keyframes`
-  0% { --p4x: 60%; --p4y: 26%; }
-  50% { --p4x: 74%; --p4y: 34%; }
-  100% { --p4x: 52%; --p4y: 18%; }
+  0%   { --p4x: 80%; --p4y: 20%; }
+  50%  { --p4x: 20%; --p4y: 80%; }
+  100% { --p4x: 90%; --p4y: 10%; }
 `;
 const b1 = keyframes`
-  0% { --s1: 22%; --s1o: 52%; }
-  50% { --s1: 42%; --s1o: 72%; }
-  100% { --s1: 24%; --s1o: 54%; }
+  0%   { --s1: 8%;  --s1o: 32%; }
+  50%  { --s1: 80%; --s1o: 96%; }
+  100% { --s1: 10%; --s1o: 28%; }
 `;
 const b2 = keyframes`
-  0% { --s2: 38%; --s2o: 74%; }
-  50% { --s2: 58%; --s2o: 88%; }
-  100% { --s2: 40%; --s2o: 76%; }
+  0%   { --s2: 10%; --s2o: 36%; }
+  50%  { --s2: 86%; --s2o: 98%; }
+  100% { --s2: 12%; --s2o: 34%; }
 `;
 const b3 = keyframes`
-  0% { --s3: 46%; --s3o: 66%; }
-  50% { --s3: 64%; --s3o: 78%; }
-  100% { --s3: 48%; --s3o: 68%; }
+  0%   { --s3: 14%; --s3o: 40%; }
+  50%  { --s3: 90%; --s3o: 98%; }
+  100% { --s3: 16%; --s3o: 38%; }
 `;
 const b4 = keyframes`
-  0% { --s4: 36%; --s4o: 64%; }
-  50% { --s4: 56%; --s4o: 80%; }
-  100% { --s4: 38%; --s4o: 66%; }
+  0%   { --s4: 12%; --s4o: 34%; }
+  50%  { --s4: 88%; --s4o: 96%; }
+  100% { --s4: 14%; --s4o: 32%; }
 `;
 
 const Root = styled.div`
@@ -85,8 +85,9 @@ const BlobMono = styled.div`
   border-radius: 50%;
   width: 82vmin;
   height: 82vmin;
-  left: 14vw;
-  top: 24vh;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   clip-path: circle(50% at 50% 50%);
   --p1x: 72%; --p1y: 52%;
   --p2x: 46%; --p2y: 68%;
@@ -100,14 +101,14 @@ const BlobMono = styled.div`
     radial-gradient(closest-side at 50% 50%, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.86) 62%, rgba(255,255,255,0.00) 76%);
   filter: blur(6px) saturate(125%);
   animation:
-    ${l1} 4.5s ease-in-out infinite alternate,
-    ${l2} 5s ease-in-out infinite alternate,
-    ${l3} 5.5s ease-in-out infinite alternate,
-    ${l4} 6s ease-in-out infinite alternate,
-    ${b1} 5s ease-in-out infinite alternate,
-    ${b2} 5.5s ease-in-out infinite alternate,
-    ${b3} 6s ease-in-out infinite alternate,
-    ${b4} 6.5s ease-in-out infinite alternate;
+    ${l1} 2.00s linear infinite alternate,
+    ${l2} 2.33s linear infinite alternate,
+    ${l3} 2.67s linear infinite alternate,
+    ${l4} 3.00s linear infinite alternate,
+    ${b1} 2.33s linear infinite alternate,
+    ${b2} 2.67s linear infinite alternate,
+    ${b3} 3.00s linear infinite alternate,
+    ${b4} 3.33s linear infinite alternate;
 
   &::before {
     content: '';
