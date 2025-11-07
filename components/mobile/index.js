@@ -15,6 +15,11 @@ import useTypewriter from "./hooks/useTypewriter";
 import { fonts, spacing } from "./sections/styles/tokens";
 import { AppContainer, ContentWrapper } from "./sections/styles/shared/layout";
 import ListeningOverlay from "./sections/ListeningOverlay";
+import * as UI from "./styles";
+import ResultsPanel from './views/ResultsPanel';
+import ReasonPanel from './views/ReasonPanel';
+import InputForm from './views/InputForm';
+import SuccessPanel from './views/SuccessPanel';
 
 export default function MobileControls() {
   const router = useRouter();
@@ -305,21 +310,19 @@ export default function MobileControls() {
         )}
         
         {!submitted ? (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
-            <HiddenForm
+          <>
+            <InputForm
               name={name}
               onNameChange={setName}
               mood={mood}
               onMoodChange={setMood}
+              onSubmit={handleSubmit}
+              showPress={showPress}
+              isListening={isListening}
+              pressProgress={pressProgress}
+              onPressStart={handlePressStart}
+              onPressEnd={handlePressEnd}
             />
-            
-            {showPress && !isListening && (
-              <PressOverlay
-                pressProgress={pressProgress}
-                onPressStart={handlePressStart}
-                onPressEnd={handlePressEnd}
-              />
-            )}
             {(isListening || listeningStage === 'finalHold' || listeningStage === 'fadeOut') && (
               <ListeningOverlay
                 topLabel="듣고 있어요"
@@ -327,327 +330,25 @@ export default function MobileControls() {
                 stage={listeningStage === 'fadeOut' ? 'fadeOut' : 'live'}
               />
             )}
-          </form>
+          </>
         ) : (loading || orchestratingLock) ? (
           <>
             <OrchestratingScreen />
           </>
         ) : recommendations && localShowResults ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* 추천 결과 표시 */}
-            {(
-              <>
-                <div style={{
-                  background: 'linear-gradient(135deg, #F3E8FF 0%, #FCEAFE 100%)',
-                  borderRadius: '15px',
-                  padding: '1.5rem',
-                  animation: 'slideInUp 0.5s ease-out'
-                }}>
-                  <h3 style={{
-                    color: '#9333EA',
-                    fontSize: '1.3rem',
-                    fontWeight: '700',
-                    marginBottom: '1rem',
-                    textAlign: 'center'
-                  }}>
-                    🎯 {(name || '사용자')}님을 위한 추천
-                  </h3>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.8)',
-                  padding: '1rem',
-                  borderRadius: '12px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🌡️</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#9333EA' }}>
-                    {recommendations.temperature}°C
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: '#9333EA', opacity: 0.7, marginTop: '0.25rem' }}>
-                    온도
-                  </div>
-                </div>
-                
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.8)',
-                  padding: '1rem',
-                  borderRadius: '12px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💧</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#9333EA' }}>
-                    {recommendations.humidity}%
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: '#9333EA', opacity: 0.7, marginTop: '0.25rem' }}>
-                    습도
-                  </div>
-                </div>
-              </div>
-              
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.8)',
-                padding: '1rem',
-                borderRadius: '12px',
-                marginBottom: '1rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{
-                    width: '50px',
-                    height: '50px',
-                    borderRadius: '10px',
-                    background: recommendations.lightColor,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                  }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.85rem', color: '#9333EA', opacity: 0.7, marginBottom: '0.25rem' }}>
-                      💡 조명 색상
-                    </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#9333EA' }}>
-                      {recommendations.lightColor}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.8)',
-                padding: '1rem',
-                borderRadius: '12px'
-              }}>
-                <div style={{ fontSize: '0.85rem', color: '#9333EA', opacity: 0.7, marginBottom: '0.5rem' }}>
-                  🎵 추천 음악
-                </div>
-                <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#9333EA' }}>
-                  {recommendations.song}
-                </div>
-              </div>
-            </div>
-            
-            
-            <button
-              onClick={handleReset}
-              style={{
-                width: '100%',
-                padding: '1rem',
-                background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '15px',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 10px 30px rgba(147, 51, 234, 0.3)'
-              }}
-            >
-              다시 입력하기
-            </button>
-              </>
-            )}
-          </div>
+          <ResultsPanel name={name} recommendations={recommendations} onReset={handleReset} />
         ) : recommendations && showReason ? (
-          <div style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'stretch',
-            padding: '2rem',
-            boxSizing: 'border-box',
-            overflow: 'auto'
-          }}>
-            <div style={{
-              width: '86%',
-              margin: '0 auto',
-              wordBreak: 'keep-all',
-              overflowWrap: 'break-word',
-              textAlign: 'center',
-              fontFamily: fonts.ui,
-              color: '#111',
-              opacity: fadeText ? 0 : 1,
-              filter: fadeText ? 'blur(6px)' : 'none',
-              transition: 'opacity 1200ms ease, filter 1200ms ease'
-            }}>
-              {(() => {
-                const typed = typedReason || '';
-                const total = fullTypedText ? fullTypedText.length : 0;
-                const isTyping = Boolean(fullTypedText) && typed.length < total;
-                const newlineLen = 2; // "\n\n"
-                let remaining = typed.length;
-                let activeIdx = 0;
-                const displayBlocks = paragraphs.map((para, i) => {
-                  if (remaining <= 0) return '';
-                  const take = Math.min(para.length, remaining);
-                  const out = para.slice(0, take);
-                  remaining -= take;
-                  if (remaining > 0 && i < paragraphs.length - 1) {
-                    // consume the two newline characters between paragraphs
-                    remaining = Math.max(0, remaining - newlineLen);
-                  }
-                  if (remaining > 0) activeIdx = i + 1; else activeIdx = i; // currently typing this index
-                  return out;
-                });
-                const keywordRegex = /(\d+°C|\d+%|#[A-Fa-f0-9]{6}|온도|습도|조명|음악|색상)/g;
-                return displayBlocks.map((block, idx) => (
-                  <p key={idx} style={{
-                    fontSize: '1.25rem',
-                    lineHeight: 1.6,
-                    fontWeight: idx === 0 ? 800 : 500,
-                    marginTop: idx === 0 ? 0 : '1.5rem'
-                  }}>
-                    {showHighlights
-                      ? block.split(keywordRegex).map((part, i) => (
-                          keywordRegex.test(part)
-                            ? <span key={i} style={{ fontWeight: 800 }}>{part}</span>
-                            : <span key={i}>{part}</span>
-                        ))
-                      : block}
-                    {isTyping && idx === activeIdx ? (
-                      <span style={{
-                        display: 'inline-block',
-                        width: '2px',
-                        height: '1.2rem',
-                        background: '#000',
-                        marginLeft: '3px',
-                        animation: 'blink 1s infinite',
-                        verticalAlign: 'middle'
-                      }} />
-                    ) : null}
-                  </p>
-                ));
-              })()}
-            </div>
-          </div>
+          <ReasonPanel
+            typedReason={typedReason}
+            fullTypedText={fullTypedText}
+            paragraphs={paragraphs}
+            showHighlights={showHighlights}
+            fadeText={fadeText}
+          />
         ) : recommendations && localShowResults ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* 추천 결과 표시 */}
-            {(
-              <>
-                <div style={{
-                  background: 'linear-gradient(135deg, #F3E8FF 0%, #FCEAFE 100%)',
-                  borderRadius: '15px',
-                  padding: '1.5rem',
-                  animation: 'slideInUp 0.5s ease-out'
-                }}>
-                  <h3 style={{
-                    color: '#9333EA',
-                    fontSize: '1.3rem',
-                    fontWeight: '700',
-                    marginBottom: '1rem',
-                    textAlign: 'center'
-                  }}>
-                    🎯 {(name || '사용자')}님을 위한 추천
-                  </h3>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.8)',
-                  padding: '1rem',
-                  borderRadius: '12px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🌡️</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#9333EA' }}>
-                    {recommendations.temperature}°C
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: '#9333EA', opacity: 0.7, marginTop: '0.25rem' }}>
-                    온도
-                  </div>
-                </div>
-                
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.8)',
-                  padding: '1rem',
-                  borderRadius: '12px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💧</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#9333EA' }}>
-                    {recommendations.humidity}%
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: '#9333EA', opacity: 0.7, marginTop: '0.25rem' }}>
-                    습도
-                  </div>
-                </div>
-              </div>
-              
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.8)',
-                padding: '1rem',
-                borderRadius: '12px',
-                marginBottom: '1rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{
-                    width: '50px',
-                    height: '50px',
-                    borderRadius: '10px',
-                    background: recommendations.lightColor,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                  }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.85rem', color: '#9333EA', opacity: 0.7, marginBottom: '0.25rem' }}>
-                      💡 조명 색상
-                    </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#9333EA' }}>
-                      {recommendations.lightColor}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.8)',
-                padding: '1rem',
-                borderRadius: '12px'
-              }}>
-                <div style={{ fontSize: '0.85rem', color: '#9333EA', opacity: 0.7, marginBottom: '0.5rem' }}>
-                  🎵 추천 음악
-                </div>
-                <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#9333EA' }}>
-                  {recommendations.song}
-                </div>
-              </div>
-            </div>
-            
-            
-            <button
-              onClick={handleReset}
-              style={{
-                width: '100%',
-                padding: '1rem',
-                background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '15px',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 10px 30px rgba(147, 51, 234, 0.3)'
-              }}
-            >
-              다시 입력하기
-            </button>
-              </>
-            )}
-          </div>
+          <ResultsPanel name={name} recommendations={recommendations} onReset={handleReset} />
         ) : (
-          <div style={{
-            textAlign: 'center',
-            padding: '2rem',
-            background: 'linear-gradient(135deg, #F3E8FF 0%, #FCEAFE 100%)',
-            borderRadius: '15px'
-          }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✨</div>
-            <p style={{
-              color: '#9333EA',
-              fontSize: '1.2rem',
-              fontWeight: '600'
-            }}>
-              입력이 완료되었습니다!
-            </p>
-          </div>
+          <SuccessPanel />
         )}
         {/* Note: moved keyframe animations to globals.css to avoid JSX parsing issues */}
       </ContentWrapper>
