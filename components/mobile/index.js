@@ -19,6 +19,8 @@ import ReasonPanel from './views/ReasonPanel';
 import InputForm from './views/InputForm';
 import SuccessPanel from './views/SuccessPanel';
 
+import BackgroundCanvas from '@/components/BackgroundCanvas';
+
 export default function MobileControls() {
   const router = useRouter();
   const isModal = router?.query?.variant === 'modal';
@@ -156,6 +158,7 @@ export default function MobileControls() {
 
   return (
     <AppContainer $isModal={isModal}>
+      <BackgroundCanvas cameraMode="default" />
       <ContentWrapper $isModal={isModal}>
         {!submitted && !isListening && (
           <>
