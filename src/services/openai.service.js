@@ -1,6 +1,6 @@
 // Single entrypoint for OpenAI decisions. JS-only.
 
-const DEFAULT_TIMEOUT_MS = 10000; // 10s
+const DEFAULT_TIMEOUT_MS = 6000; // faster failover to avoid UX stalls
 
 function withTimeout(promise, ms = DEFAULT_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
