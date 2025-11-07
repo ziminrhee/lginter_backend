@@ -1,43 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import useSocketMW1 from "@/utils/hooks/useSocketMW1";
 
 export default function MW1Controls() {
-  const { socket } = useSocketMW1();
   const [welcomeData, setWelcomeData] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  useEffect(() => {
-    if (!socket) {
-      console.log('MW1 Component: Waiting for socket connection...');
-      return;
-    }
+  const handleDisplayVoice = useCallback((data) => {
+    console.log('🎤 MW1 Component received entrance-new-voice:', data);
+    setWelcomeData({
+      name: data.userId || '손님',
+      text: data.text,
+      emotion: data.emotion
+    });
+    setIsVisible(true);
+    
+    // 8초 후 사라짐 (감정 표시가 있으므로 더 길게)
+    setTimeout(() => {
+      setIsVisible(false);
+      setTimeout(() => setWelcomeData(null), 500); // 페이드아웃 후 데이터 클리어
+    }, 8000);
+  }, []);
 
-    console.log('MW1 Component: Socket ready, registering event listener');
-
-    const handleDisplayVoice = (data) => {
-      console.log('🎤 MW1 Component received entrance-new-voice:', data);
-      setWelcomeData({
-        name: data.userId || '손님',
-        text: data.text,
-        emotion: data.emotion
-      });
-      setIsVisible(true);
-      
-      // 8초 후 사라짐 (감정 표시가 있으므로 더 길게)
-      setTimeout(() => {
-        setIsVisible(false);
-        setTimeout(() => setWelcomeData(null), 500); // 페이드아웃 후 데이터 클리어
-      }, 8000);
-    };
-
-    // entrance-new-voice 이벤트 수신 (사용자가 말한 내용 표시)
-    socket.on('entrance-new-voice', handleDisplayVoice);
-
-    return () => {
-      console.log('MW1 Component: Removing event listener');
-      socket.off('entrance-new-voice', handleDisplayVoice);
-    };
-  }, [socket]);
+  const { socket } = useSocketMW1({ onEntranceNewVoice: handleDisplayVoice });
 
   return (
     <div style={{

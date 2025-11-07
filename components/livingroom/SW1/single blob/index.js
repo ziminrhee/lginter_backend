@@ -1,33 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import useSocketSW1 from "@/utils/hooks/useSocketSW1";
 
 export default function SW1Controls() {
-  const { socket } = useSocketSW1();
   const [climateData, setClimateData] = useState(null);
   const [participantCount, setParticipantCount] = useState(0);
 
-  useEffect(() => {
-    if (!socket) return;
-
+  const handleDeviceDecision = useCallback((data) => {
     const seenUsers = new Set();
-
-    const handleDeviceDecision = (data) => {
-      if (data.device === 'sw1') {
-        setClimateData({ temperature: data.temperature, humidity: data.humidity });
-        if (data.assignedUsers) {
-          Object.values(data.assignedUsers).forEach((u) => {
-            if (u && u !== 'N/A') seenUsers.add(String(u));
-          });
-          setParticipantCount(seenUsers.size);
-        }
+    if (data.device === 'sw1') {
+      setClimateData({ temperature: data.temperature, humidity: data.humidity });
+      if (data.assignedUsers) {
+        Object.values(data.assignedUsers).forEach((u) => {
+          if (u && u !== 'N/A') seenUsers.add(String(u));
+        });
+        setParticipantCount(seenUsers.size);
       }
-    };
+    }
+  }, []);
 
-    socket.on('device-decision', handleDeviceDecision);
-    return () => {
-      socket.off('device-decision', handleDeviceDecision);
-    };
-  }, [socket]);
+  const { socket } = useSocketSW1({ onDeviceDecision: handleDeviceDecision });
 
   const computeMode = (humidity) => {
     if (humidity == null) return '';

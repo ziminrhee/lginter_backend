@@ -1,76 +1,58 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import useSocketSW2 from "@/utils/hooks/useSocketSW2";
 
 export default function SW2Controls() {
-  const { socket } = useSocketSW2();
   const [ambienceData, setAmbienceData] = useState(null);
   const [assignedUsers, setAssignedUsers] = useState({ light: 'N/A', music: 'N/A' });
   const [youtubeData, setYoutubeData] = useState(null);
   const [loadingMusic, setLoadingMusic] = useState(false);
-
-  useEffect(() => {
-    if (!socket) {
-      console.log('SW2 Component: Waiting for socket connection...');
-      return;
+  const searchYouTubeMusic = useCallback(async (songTitle) => {
+    setLoadingMusic(true);
+    try {
+      const [songName, artistName] = songTitle.split(' - ');
+      const response = await fetch('/api/youtube-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ song: songName, artist: artistName })
+      });
+      const data = await response.json();
+      console.log('🎵 YouTube search result:', data);
+      setYoutubeData(data);
+    } catch (error) {
+      console.error('YouTube search error:', error);
+    } finally {
+      setLoadingMusic(false);
     }
+  }, []);
 
-    console.log('SW2 Component: Socket ready, registering event listener');
-
-    const handleDeviceDecision = (data) => {
-      console.log('💡 SW2 received device-decision:', data);
-      if (data.device === 'sw2') {
-        console.log('✅ SW2: Data matched, updating state');
-        setAmbienceData(data);
-        if (data.assignedUsers) {
-          setAssignedUsers(data.assignedUsers);
-          console.log('👥 SW2: Assigned users:', data.assignedUsers);
-        }
-        
-        // 노래가 바뀌면 YouTube 검색
-        if (data.song) {
-          searchYouTubeMusic(data.song);
-        }
-      } else {
-        console.log('⏭️ SW2: Data not for this device, skipping');
+  const handleDeviceDecision = useCallback((data) => {
+    console.log('💡 SW2 received device-decision:', data);
+    if (data.device === 'sw2') {
+      console.log('✅ SW2: Data matched, updating state');
+      setAmbienceData(data);
+      if (data.assignedUsers) {
+        setAssignedUsers(data.assignedUsers);
+        console.log('👥 SW2: Assigned users:', data.assignedUsers);
       }
-    };
-    
-    const searchYouTubeMusic = async (songTitle) => {
-      setLoadingMusic(true);
-      try {
-        const [songName, artistName] = songTitle.split(' - ');
-        const response = await fetch('/api/youtube-search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ song: songName, artist: artistName })
-        });
-        const data = await response.json();
-        console.log('🎵 YouTube search result:', data);
-        setYoutubeData(data);
-      } catch (error) {
-        console.error('YouTube search error:', error);
-      } finally {
-        setLoadingMusic(false);
+      if (data.song) {
+        searchYouTubeMusic(data.song);
       }
-    };
+    } else {
+      console.log('⏭️ SW2: Data not for this device, skipping');
+    }
+  }, [searchYouTubeMusic]);
 
-    socket.on('device-decision', handleDeviceDecision);
+  const handleNewDecision = useCallback((msg) => {
+    if (!msg || (msg.target && msg.target !== 'sw2')) return;
+    const env = msg.env || {};
+    const data = { device: 'sw2', lightColor: env.lightColor, song: env.music };
+    setAmbienceData(prev => ({ ...prev, ...data }));
+  }, []);
 
-    // New canonical event
-    const handleNewDecision = (msg) => {
-      if (!msg || (msg.target && msg.target !== 'sw2')) return;
-      const env = msg.env || {};
-      const data = { device: 'sw2', lightColor: env.lightColor, song: env.music };
-      setAmbienceData(prev => ({ ...prev, ...data }));
-    };
-    socket.on('device-new-decision', handleNewDecision);
-
-    return () => {
-      console.log('SW2 Component: Removing event listener');
-      socket.off('device-decision', handleDeviceDecision);
-      socket.off('device-new-decision', handleNewDecision);
-    };
-  }, [socket]);
+  const { socket } = useSocketSW2({
+    onDeviceDecision: handleDeviceDecision,
+    onDeviceNewDecision: handleNewDecision,
+  });
 
   return (
     <div style={{

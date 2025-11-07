@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 import { createBasePayload } from "./socketEvents";
 import { SOCKET_CONFIG } from "../constants";
 
-export default function useSocketMW1() {
+export default function useSocketMW1(options = {}) {
   const socketRef = useRef(null);
   const [socket, setSocket] = useState(null);
 
@@ -64,6 +64,19 @@ export default function useSocketMW1() {
       }
     };
   }, []);
+
+  // Attach/detach external handlers
+  useEffect(() => {
+    const s = socketRef.current;
+    if (!s) return;
+    const { onEntranceNewVoice } = options || {};
+
+    if (onEntranceNewVoice) s.on('entrance-new-voice', onEntranceNewVoice);
+
+    return () => {
+      if (onEntranceNewVoice) s.off('entrance-new-voice', onEntranceNewVoice);
+    };
+  }, [socket, options?.onEntranceNewVoice]);
 
   return { 
     socket,

@@ -4,7 +4,7 @@ import { EVENTS, createDeviceDecisionPayload, createBasePayload } from "./socket
 import { SOCKET_CONFIG } from "../constants";
 
 // SW1 is climate (temperature/humidity)
-export default function useSocketSW1() {
+export default function useSocketSW1(options = {}) {
   const socketRef = useRef(null);
   const [socket, setSocket] = useState(null);
 
@@ -52,6 +52,19 @@ export default function useSocketSW1() {
       }
     };
   }, []);
+
+  // Attach/detach external handlers
+  useEffect(() => {
+    const s = socketRef.current;
+    if (!s) return;
+    const { onDeviceDecision } = options || {};
+
+    if (onDeviceDecision) s.on('device-decision', onDeviceDecision);
+
+    return () => {
+      if (onDeviceDecision) s.off('device-decision', onDeviceDecision);
+    };
+  }, [socket, options?.onDeviceDecision]);
 
   const emitClimateDecision = (temp, humidity, assignedUser, meta = {}) => {
     // payload: { uuid, ts, type: 'climate', temp, humidity, assignedUser }

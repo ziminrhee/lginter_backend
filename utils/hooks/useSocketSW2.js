@@ -4,7 +4,7 @@ import { EVENTS, createDeviceDecisionPayload, createBasePayload } from "./socket
 import { SOCKET_CONFIG } from "../constants";
 
 // SW2 is ambience (music / light)
-export default function useSocketSW2() {
+export default function useSocketSW2(options = {}) {
   const socketRef = useRef(null);
   const [socket, setSocket] = useState(null);
 
@@ -52,6 +52,21 @@ export default function useSocketSW2() {
       }
     };
   }, []);
+
+  // Attach/detach external handlers
+  useEffect(() => {
+    const s = socketRef.current;
+    if (!s) return;
+    const { onDeviceDecision, onDeviceNewDecision } = options || {};
+
+    if (onDeviceDecision) s.on('device-decision', onDeviceDecision);
+    if (onDeviceNewDecision) s.on('device-new-decision', onDeviceNewDecision);
+
+    return () => {
+      if (onDeviceDecision) s.off('device-decision', onDeviceDecision);
+      if (onDeviceNewDecision) s.off('device-new-decision', onDeviceNewDecision);
+    };
+  }, [socket, options?.onDeviceDecision, options?.onDeviceNewDecision]);
 
   const emitAmbienceDecision = (music, color, assignedUser, meta = {}) => {
     // payload: { uuid, ts, type: 'ambience', music, color, assignedUser }
