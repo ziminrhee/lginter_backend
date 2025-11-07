@@ -1,5 +1,5 @@
 // Styles for LoadingScreen (mobile)
-// Extracted from components/mobile/sections/LoadingScreen.js
+// Extracted from components/mobile/modules/loading/loadingScreen.styles.js
 
 import { colors, fonts } from '../../styles/tokens';
 
@@ -54,5 +54,6 @@ export const sub = {
   fontSize: '0.9rem',
   opacity: 0.7
 };
+
 
 

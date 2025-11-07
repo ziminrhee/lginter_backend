@@ -1,8 +1,8 @@
 // Styles for OrchestratingScreen (mobile voice state)
-// Extracted from components/mobile/sections/OrchestratingScreen.js
+// Extracted from components/mobile/modules/voice/orchestrating.styles.js
 
 import { fonts } from '../../styles/tokens';
-import { fullscreenOverlay, centeredCircleWrap } from '../shared/layout';
+import { fullscreenOverlay, centeredCircleWrap } from '../../styles/shared/layout';
 
 export const container = () => fullscreenOverlay();
 
@@ -22,5 +22,6 @@ export const text = {
   opacity: 0,
   animation: 'orchestrateLabel 1800ms ease forwards'
 };
+
 
 

@@ -1,8 +1,8 @@
 // Styles for ListeningOverlay (mobile voice state)
-// Extracted from components/mobile/sections/ListeningOverlay.js
+// Extracted from components/mobile/modules/voice/listening.styles.js
 
 import { colors, fonts } from '../../styles/tokens';
-import { fullscreenOverlay, centeredCircleWrap, fixedTopLabel } from '../shared/layout';
+import { fullscreenOverlay, centeredCircleWrap, fixedTopLabel } from '../../styles/shared/layout';
 
 export const container = () => fullscreenOverlay();
 
@@ -53,5 +53,6 @@ export const textFade = (fading, ms = 600) => ({
   filter: fading ? 'blur(6px)' : 'none',
   transition: `opacity ${ms}ms ease, filter ${ms}ms ease`
 });
+
 
 

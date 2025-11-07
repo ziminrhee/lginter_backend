@@ -13,7 +13,7 @@ import useSpeechRecognition from "./hooks/useSpeechRecognition";
 import useWeatherGreeting from "./hooks/useWeatherGreeting";
 import useTypewriter from "./hooks/useTypewriter";
 import { fonts, spacing } from "./styles/tokens";
-import { appContainer, contentWrapper } from "./modules/shared/layout";
+import { appContainer, contentWrapper } from "./styles/shared/layout";
 import ListeningOverlay from "./sections/ListeningOverlay";
 
 export default function MobileControls() {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { root as rootStyle, title as titleStyle, sub as subStyle } from '../modules/hero/heroText.styles';
+import * as S from './styles';
 
 // Phases
 // hidden -> greet1(만나서/반가워요!) -> greet2(오늘도/수고하셨어요.) -> final(오늘의 하루는/어땠나요?)
@@ -34,6 +34,7 @@ export default function HeroText({ isModal = false, onFinalPhase }) {
         const tInner = setTimeout(() => {
           setPhase('greet2');
           setOpacity(1);
+          
         }, fadeMs);
         timersRef.current.push(tInner);
       }, visibleMs);
@@ -68,15 +69,15 @@ export default function HeroText({ isModal = false, onFinalPhase }) {
   }, [phase]);
 
   if (phase === 'hidden') {
-    return <div style={rootStyle} />;
+    return <div style={S.root} />;
   }
 
   const subtextFontSize = 'clamp(1.1rem, 3.7vw, 1.25rem)';
 
   return (
-    <div style={rootStyle}>
+    <div style={S.root}>
       <h1 style={{
-        ...titleStyle(isModal),
+        ...S.title(isModal),
         opacity,
         transition: `opacity ${fadeMs}ms ease`
       }}>
@@ -84,7 +85,7 @@ export default function HeroText({ isModal = false, onFinalPhase }) {
       </h1>
       {subText && (
         <p style={{
-          ...subStyle(isModal),
+          ...S.sub(isModal),
           fontSize: subtextFontSize,
           opacity,
           transition: `opacity ${fadeMs}ms ease`
@@ -95,5 +96,6 @@ export default function HeroText({ isModal = false, onFinalPhase }) {
     </div>
   );
 }
+
 
 

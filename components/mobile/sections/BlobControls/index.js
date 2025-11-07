@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fonts } from '../styles/tokens';
+import { fonts } from '../../styles/tokens';
 
 export default function BlobControls() {
   const [open, setOpen] = useState(false);
@@ -85,5 +85,6 @@ export default function BlobControls() {
     </div>
   );
 }
+
 
 

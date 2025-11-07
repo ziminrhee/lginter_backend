@@ -54,6 +54,7 @@ export default function useSpeechRecognition({ onResult, onInterim, onStart, onE
 
       recognition.onerror = (event) => {
         console.error('❌ 음성 인식 오류:', event.error);
+        console.log(event);
         setIsListening(false);
         if (typeof window !== 'undefined') window.isListening = false;
         if (typeof onError === 'function') onError(event.error);

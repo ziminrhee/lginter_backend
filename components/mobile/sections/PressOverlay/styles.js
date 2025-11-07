@@ -1,7 +1,7 @@
 // Styles for the mobile press overlay.
-// Extracted from components/mobile/sections/PressOverlay.js with no behavioral changes.
+// Extracted from components/mobile/modules/press/pressOverlay.styles.js
 
-import { pressOverlayContainer, circleHitArea } from '../shared/layout';
+import { pressOverlayContainer, circleHitArea } from '../../styles/shared/layout';
 
 export const container = (zIndex) => pressOverlayContainer(undefined, zIndex);
 
@@ -29,5 +29,6 @@ export const ringPulse = {
   mixBlendMode: 'screen',
   opacity: 0
 };
+
 
 

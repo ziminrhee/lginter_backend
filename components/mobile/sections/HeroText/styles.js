@@ -1,5 +1,5 @@
 // Styles for HeroText (mobile intro copy)
-// Extracted from components/mobile/sections/HeroText.js
+// Extracted from components/mobile/modules/hero/heroText.styles.js
 
 import { fonts, spacing, typography, colors } from '../../styles/tokens';
 
@@ -25,5 +25,6 @@ export const sub = (isModal) => ({
   textAlign: isModal ? 'center' : 'left',
   fontFamily: fonts.ui
 });
+
 
 

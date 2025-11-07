@@ -1,4 +1,4 @@
-import { container as containerStyle, topLabel, circleWrap, ringBase, text as textStyle, textFade } from '../modules/voice/listening.styles';
+import * as S from './styles';
 
 export default function ListeningOverlay({ topLabel: topLabelText = '듣고 있어요', centerText, stage = 'live' }) {
   const fading = stage === 'fadeOut';
@@ -6,13 +6,13 @@ export default function ListeningOverlay({ topLabel: topLabelText = '듣고 있�
 
 
   return (
-    <div style={containerStyle()}>
-      <div style={topLabel}>{topLabelText}</div>
+    <div style={S.container()}>
+      <div style={S.topLabel}>{topLabelText}</div>
 
-      <div style={circleWrap()}>
+      <div style={S.circleWrap()}>
         {/* outward ripples */}
-        <div style={{ ...ringBase, animation: 'outwardRipple 1600ms ease-out infinite' }} />
-        <div style={{ ...ringBase, animation: 'outwardRipple 1600ms ease-out infinite 800ms' }} />
+        <div style={{ ...S.ringBase, animation: 'outwardRipple 1600ms ease-out infinite' }} />
+        <div style={{ ...S.ringBase, animation: 'outwardRipple 1600ms ease-out infinite 800ms' }} />
         {centerText ? (
           <div style={{
             position: 'absolute',
@@ -24,12 +24,13 @@ export default function ListeningOverlay({ topLabel: topLabelText = '듣고 있�
             justifyContent: 'center',
             pointerEvents: 'none'
           }}>
-            <div style={{ ...textStyle, ...textFade(fading, fadeMs) }}>{centerText}</div>
+            <div style={{ ...S.text, ...S.textFade(fading, fadeMs) }}>{centerText}</div>
           </div>
         ) : null}
       </div>
     </div>
   );
 }
+
 
 
