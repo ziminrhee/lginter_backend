@@ -1,13 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
-import useOpenAIAnalysis from "@/utils/hooks/useOpenAIAnalysis";
 import OrchestratingScreen from "./sections/OrchestratingScreen";
 import HeroText from "./sections/HeroText";
 import BlobControls from "./sections/BlobControls";
 import useLongPressProgress from "./hooks/useLongPressProgress";
 import useSpeechRecognition from "./hooks/useSpeechRecognition";
-import useWeatherGreeting from "./hooks/useWeatherGreeting";
 import useTypewriter from "./hooks/useTypewriter";
 import useOrchestratingTransitions from './hooks/useOrchestratingTransitions';
 import usePostTypingShowcase from './hooks/usePostTypingShowcase';
@@ -24,8 +22,22 @@ import BackgroundCanvas from '@/components/mobile/BackgroundCanvas';
 export default function MobileControls() {
   const router = useRouter();
   const isModal = router?.query?.variant === 'modal';
-  const { emitNewName, emitNewVoice, socket } = useSocketMobile();
-  const { loading, recommendations, analyze, reset } = useOpenAIAnalysis(socket);
+  const [loading, setLoading] = useState(false);
+  const [recommendations, setRecommendations] = useState(null);
+  const { emitNewName, emitNewVoice, socket } = useSocketMobile({
+    onMobileDecision: (payload) => {
+      // payload: { userId, params: { temp, humidity, lightColor, music }, reason }
+      const rec = {
+        temperature: payload?.params?.temp,
+        humidity: payload?.params?.humidity,
+        lightColor: payload?.params?.lightColor,
+        song: payload?.params?.music,
+        reason: payload?.reason
+      };
+      setRecommendations(rec);
+      setLoading(false);
+    }
+  });
   const [name, setName] = useState("");
   const [mood, setMood] = useState("");
   const [liveTranscript, setLiveTranscript] = useState("");
@@ -34,7 +46,6 @@ export default function MobileControls() {
   const [listeningStage, setListeningStage] = useState('idle'); // idle | live | finalHold | fadeOut
   const [orchestratingLock, setOrchestratingLock] = useState(false);
   const orchestrateMinMs = 5500;
-  const weatherGreeting = useWeatherGreeting();
 
   const { isListening, startVoiceRecognition } = useSpeechRecognition({
     onStart: () => {
@@ -115,14 +126,15 @@ export default function MobileControls() {
     
     console.log('✅ Mobile: Data emitted successfully');
     
-    // OpenAI 분석 시작
+    // Controller 경유 결정 대기
     setSubmitted(true);
-    await analyze(name.trim(), mood.trim());
-  }, [name, mood, emitNewName, emitNewVoice, analyze]);
+    setLoading(true);
+  }, [name, mood, emitNewName, emitNewVoice, socket]);
 
   const handleReset = useCallback(() => {
     setSubmitted(false);
-    reset();
+    setRecommendations(null);
+    setLoading(false);
     setName("");
     setMood("");
     setShowPress(false);
@@ -137,7 +149,7 @@ export default function MobileControls() {
       window.showFinalOrb = false;
       window.showCenterGlow = false;
     }
-  }, [reset]);
+  }, []);
 
   
 
@@ -164,12 +176,7 @@ export default function MobileControls() {
           <>
             <HeroText isModal={isModal} onFinalPhase={() => setShowPress(true)} />
             
-            {/* 날씨 기반 인사말 - 기능 유지하되 숨김 */}
-            {weatherGreeting && (
-              <div style={{ display: 'none' }}>
-                <p>{weatherGreeting.fullGreeting}</p>
-              </div>
-            )}
+            
             
             {/* 설명 문구 - 기능 유지하되 숨김 */}
             <p style={{ display: 'none' }}>

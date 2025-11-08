@@ -15,7 +15,7 @@ const createMobileNamePayload = (name, meta = {}) => createBasePayload("mobile",
 const createMobileVoicePayload = (text, emotion, score = 0.5, meta = {}) => createBasePayload("mobile", { text, emotion, score, userId: meta.userId, meta });
 
 // mobile-side socket: init and emit actions
-export default function useSocketMobile() {
+export default function useSocketMobile(options = {}) {
   const socketRef = useRef(null);
   const [socket, setSocket] = useState(null);
 
@@ -55,10 +55,15 @@ export default function useSocketMobile() {
       console.error("❌ Mobile socket connection error:", error.message);
     });
 
+    // Attach dynamic listeners
+    const { onMobileDecision } = options || {};
+    if (onMobileDecision) s.on("mobile-new-decision", onMobileDecision);
+
     return () => {
       mounted = false;
       console.log("Mobile Hook: Cleaning up socket");
       if (socketRef.current) {
+        if (onMobileDecision) socketRef.current.off("mobile-new-decision", onMobileDecision);
         socketRef.current.disconnect();
         socketRef.current = null;
       }

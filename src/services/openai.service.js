@@ -10,16 +10,7 @@ function withTimeout(promise, ms = DEFAULT_TIMEOUT_MS) {
 }
 
 export async function decideEnv({ systemPrompt, latestConversation, currentProgram, currentUser }) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  // Mock fallback when no key
-  if (!apiKey) {
-    return {
-      updatedProgram: { text: currentProgram?.text || 'mock', version: (currentProgram?.version || 0) + 1, reason: 'mock (no api key)' },
-      params: { temp: 24, humidity: 50, lightColor: '#FFFFFF', music: 'ambient' },
-      reason: 'degraded mode (mock)',
-    };
-  }
-
+  // Build chat messages and call through Next.js API proxy to keep API key server-side
   const body = {
     model: 'gpt-4o-mini',
     messages: [
@@ -29,9 +20,9 @@ export async function decideEnv({ systemPrompt, latestConversation, currentProgr
     ],
   };
 
-  const req = fetch('https://api.openai.com/v1/chat/completions', {
+  const req = fetch('/api/openai', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   }).then(async (r) => {
     const data = await r.json();
