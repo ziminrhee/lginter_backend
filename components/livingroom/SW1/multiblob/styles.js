@@ -191,3 +191,71 @@ export const Dot = styled.span`
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
 `;
 
+/* Floating blobs (4) */
+const float1 = keyframes`
+  0%   { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
+  50%  { transform: translate(-50%, -50%) translate(2vmin, -1.5vmin) scale(1.04); }
+  100% { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
+`;
+
+const float2 = keyframes`
+  0%   { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
+  50%  { transform: translate(-50%, -50%) translate(-2.2vmin, 1.8vmin) scale(1.05); }
+  100% { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
+`;
+
+const float3 = keyframes`
+  0%   { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
+  50%  { transform: translate(-50%, -50%) translate(1.6vmin, 2.2vmin) scale(1.03); }
+  100% { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
+`;
+
+const float4 = keyframes`
+  0%   { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
+  50%  { transform: translate(-50%, -50%) translate(-1.8vmin, -2vmin) scale(1.05); }
+  100% { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
+`;
+
+const FloatingBlob = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 18vmin;
+  height: 18vmin;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+  will-change: transform, filter, opacity;
+  filter: blur(14px) saturate(1.05) brightness(1.04);
+  opacity: 0.9;
+`;
+
+export const FloatingBlob1 = styled(FloatingBlob)`
+  top: 22vh;
+  left: 24vw;
+  background: radial-gradient(closest-side, rgba(255, 193, 186, 0.95) 0%, rgba(255, 193, 186, 0.55) 45%, rgba(255, 193, 186, 0) 70%);
+  animation: ${float1} 9.5s ease-in-out infinite alternate;
+`;
+
+export const FloatingBlob2 = styled(FloatingBlob)`
+  top: 30vh;
+  left: 78vw;
+  background: radial-gradient(closest-side, rgba(251, 178, 211, 0.95) 0%, rgba(251, 178, 211, 0.55) 45%, rgba(251, 178, 211, 0) 70%);
+  animation: ${float2} 10.5s ease-in-out infinite alternate;
+`;
+
+export const FloatingBlob3 = styled(FloatingBlob)`
+  top: 72vh;
+  left: 72vw;
+  background: radial-gradient(closest-side, rgba(221, 219, 221, 0.95) 0%, rgba(221, 219, 221, 0.55) 45%, rgba(221, 219, 221, 0) 70%);
+  animation: ${float3} 11.5s ease-in-out infinite alternate;
+`;
+
+export const FloatingBlob4 = styled(FloatingBlob)`
+  top: 76vh;
+  left: 18vw;
+  background: radial-gradient(closest-side, rgba(255, 201, 227, 0.95) 0%, rgba(255, 201, 227, 0.55) 45%, rgba(255, 201, 227, 0) 70%);
+  animation: ${float4} 12.5s ease-in-out infinite alternate;
+`;
+
