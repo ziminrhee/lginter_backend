@@ -60,6 +60,7 @@ export default function MobileControls() {
   const [listeningStage, setListeningStage] = useState('idle'); // idle | live | finalHold | fadeOut
   const [orchestratingLock, setOrchestratingLock] = useState(false);
   const orchestrateMinMs = 5500;
+  const [showResetDelayed, setShowResetDelayed] = useState(false);
 
   const { isListening, startVoiceRecognition } = useSpeechRecognition({
     onStart: () => {
@@ -113,12 +114,25 @@ export default function MobileControls() {
     fullTypedText
   );
 
-  const { fadeText, localShowResults, resetShowcase } = usePostTypingShowcase({ fullTypedText, typedReason, recommendations, setOrchestratingLock });
+  const { fadeText, localShowResults, labelsShown, resetShowcase } = usePostTypingShowcase({ fullTypedText, typedReason, recommendations, setOrchestratingLock });
 
   // (Typewriter, weather, press handlers moved to hooks above)
 
   // applies scroll lock while mounted
   useScrollLock();
+
+  // Show reset button 2s after labels appear; keep showing through results
+  useEffect(() => {
+    if ((labelsShown || localShowResults) && recommendations && !loading && !orchestratingLock) {
+      if (typeof window !== 'undefined') {
+        window.orbitPaused = true;
+      }
+      setShowResetDelayed(false);
+      const t = setTimeout(() => setShowResetDelayed(true), 2000);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [labelsShown, localShowResults, recommendations, loading, orchestratingLock]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -152,14 +166,12 @@ export default function MobileControls() {
     setName("");
     setMood("");
     setShowPress(false);
-    setShowReason(false);
-    setTypedReason("");
-    setShowHighlights(false);
-    setShowResults(false);
     resetShowcase();
     if (typeof window !== 'undefined') {
       window.showFinalOrb = false;
       window.showCenterGlow = false;
+      window.orbitPaused = false;
+      try { window.location.reload(); } catch {}
     }
   }, [resetShowcase]);
 
@@ -242,15 +254,16 @@ export default function MobileControls() {
             showHighlights={showHighlights}
             fadeText={fadeText}
           />
-        ) : (recommendations && localShowResults && !loading && !orchestratingLock) ? (
-          <ResetButtonWrap>
-            <ResetButton type="button" onClick={handleReset}>
-              다시 입력하기
-            </ResetButton>
-          </ResetButtonWrap>
-        ) : null}
+        ) : (recommendations && localShowResults && !loading && !orchestratingLock) ? null : null}
         {/* Note: moved keyframe animations to globals.css to avoid JSX parsing issues */}
       </ContentWrapper>
+      {showResetDelayed && (
+        <ResetButtonWrap>
+          <ResetButton type="button" onClick={handleReset}>
+            다시 대화하기
+          </ResetButton>
+        </ResetButtonWrap>
+      )}
       <BlobControls />
     </AppContainer>
   );
@@ -261,7 +274,7 @@ const ResetButtonWrap = styled.div`
   bottom: clamp(32px, 12vh, 80px);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1800;
+  z-index: 2600;
   pointer-events: auto;
 `;
 
