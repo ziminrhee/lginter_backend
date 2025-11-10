@@ -70,11 +70,111 @@ export const Label = styled.div`
   position: absolute;
   left: 50%;
   top: 50%;
-  animation: ${(p) => p.$anim};
-  color: #111;
-  font-weight: 800;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+`;
+
+export const KeywordLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+  --kw-center-x: 50%;
+  --kw-center-y: 40%;
+  --kw-spacing-y: clamp(72px, 14vh, 120px);
+  --kw-spacing-x: clamp(110px, 22vw, 180px);
+  opacity: ${(p) => (p.$visible ? 1 : 0)};
+  transition: opacity 320ms ease;
+  mix-blend-mode: normal;
+`;
+
+export const KeywordItem = styled.div`
+  position: absolute;
   font-family: inherit;
-  font-size: clamp(1rem, 3.4vw, 1.25rem);
+  font-weight: 800;
+  font-size: clamp(1.3rem, 5.5vw, 2.4rem);
+  color: #000;
+  text-shadow: none;
+  ${(p) => p.$pos === 'top' ? `
+    top: var(--kw-center-y);
+    left: var(--kw-center-x);
+    transform: translate(-50%, -50%) translateY(calc(-1 * var(--kw-spacing-y)));
+  ` : ''}
+  ${(p) => p.$pos === 'bottom' ? `
+    top: var(--kw-center-y);
+    left: var(--kw-center-x);
+    transform: translate(-50%, -50%) translateY(var(--kw-spacing-y));
+  ` : ''}
+  ${(p) => p.$pos === 'right' ? `
+    top: var(--kw-center-y);
+    left: var(--kw-center-x);
+    transform: translate(-50%, -50%) translateX(var(--kw-spacing-x));
+  ` : ''}
+  ${(p) => p.$pos === 'left' ? `
+    top: var(--kw-center-y);
+    left: var(--kw-center-x);
+    transform: translate(-50%, -50%) translateX(calc(-1 * var(--kw-spacing-x)));
+  ` : ''}
+  opacity: ${(p) => p.$visible ? 1 : 0};
+`;
+
+export const MoodWords = styled.div`
+  position: absolute;
+  left: 50%;
+  top: 32%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  mix-blend-mode: normal;
+  z-index: 6;
+  --word-spacing: clamp(4px, 1.5vh, 12px);
+  width: max-content;
+  opacity: ${(p) => (p.$visible ? 1 : 0)};
+  transition: opacity 600ms ease;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.02) 6%,
+    rgba(0, 0, 0, 0.35) 16%,
+    rgba(0, 0, 0, 0.65) 28%,
+    #000 46%,
+    rgba(0, 0, 0, 0.4) 58%,
+    rgba(0, 0, 0, 0.12) 70%,
+    transparent 82%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.02) 6%,
+    rgba(0, 0, 0, 0.35) 16%,
+    rgba(0, 0, 0, 0.65) 28%,
+    #000 46%,
+    rgba(0, 0, 0, 0.4) 58%,
+    rgba(0, 0, 0, 0.12) 70%,
+    transparent 82%
+  );
+`;
+
+export const MoodTrack = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--word-spacing);
+  transform: translate3d(0, 0, 0);
+  animation: moodTrackScroll var(--cycle-duration, 6.6s) linear infinite;
+`;
+
+export const MoodWord = styled.div`
+  font-family: inherit;
+  font-weight: 500;
+  font-size: clamp(1.4rem, 6vw, 2.6rem);
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.96);
+  text-shadow:
+    0 0 18px rgba(255, 210, 245, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.15);
 `;
 
 export const NewOrbWrap = styled.div`
@@ -199,21 +299,28 @@ export const KeyframesGlobal = createGlobalStyle`
   @keyframes finalOrbAppear { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(-85.44deg) scale(0.9);} 100% { opacity: 0.95; transform: translate(-50%, -50%) rotate(-85.44deg) scale(1);} }
   @keyframes centerGlowPulse { 0%,100% { opacity: 0.6; filter: blur(29.5px);} 50% { opacity: 0.85; filter: blur(22px);} }
 
-  @keyframes labelCW {
-    0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${(p) => p.$blobSize * 0.58}px) rotate(0deg) translateY(-18px); }
-    100% { transform: translate(-50%, -50%) rotate(360deg) translateX(${(p) => p.$blobSize * 0.58}px) rotate(-360deg) translateY(-18px); }
+  @keyframes labelOrbitCW {
+    0% { --orbit-angle: 0deg; }
+    100% { --orbit-angle: 360deg; }
   }
-  @keyframes labelCCW {
-    0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${(p) => p.$blobSize * 0.5}px) rotate(0deg) translateY(-18px); }
-    100% { transform: translate(-50%, -50%) rotate(-360deg) translateX(${(p) => p.$blobSize * 0.5}px) rotate(360deg) translateY(-18px); }
+  @keyframes labelOrbitCCW {
+    0% { --orbit-angle: 0deg; }
+    100% { --orbit-angle: -360deg; }
   }
-  @keyframes labelCWBottom {
-    0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${(p) => p.$blobSize * 0.58}px) rotate(0deg) translateY(26px); }
-    100% { transform: translate(-50%, -50%) rotate(360deg) translateX(${(p) => p.$blobSize * 0.58}px) rotate(-360deg) translateY(26px); }
+  @keyframes keywordFloat {
+    0% { transform: translate(-50%, -50%) translateY(0px); opacity: 0; }
+    10% { opacity: 0.9; }
+    45% { opacity: 1; }
+    70% { opacity: 0.95; }
+    100% { transform: translate(-50%, -50%) translateY(-12px); opacity: 0; }
   }
-  @keyframes labelCCWBottom {
-    0% { transform: translate(-50%, -50%) rotate(0deg) translateX(${(p) => p.$blobSize * 0.5}px) rotate(0deg) translateY(26px); }
-    100% { transform: translate(-50%, -50%) rotate(-360deg) translateX(${(p) => p.$blobSize * 0.5}px) rotate(360deg) translateY(26px); }
+  @keyframes moodTrackScroll {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(calc(-1 * var(--word-spacing) * var(--loop-steps, 5)));
+    }
   }
   @keyframes ringPulse {
     0%, 100% {
@@ -232,6 +339,12 @@ export const KeyframesGlobal = createGlobalStyle`
 `;
 
 export const BlobCssGlobal = createGlobalStyle`
+  @property --orbit-angle {
+    syntax: '<angle>';
+    inherits: false;
+    initial-value: 0deg;
+  }
+
   @property --start-wobble { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
   @property --end-wobble { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
   @property --feather-wobble { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
@@ -332,5 +445,3 @@ export const BlobCssGlobal = createGlobalStyle`
     }
   }
 `;
-
-

@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
+import { useState, useEffect, useCallback } from "react";
+import styled from "styled-components";
 import { useRouter } from "next/router";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
 import OrchestratingScreen from "./sections/OrchestratingScreen";
@@ -12,12 +14,12 @@ import usePostTypingShowcase from './hooks/usePostTypingShowcase';
 import useScrollLock from './hooks/useScrollLock';
 import { AppContainer, ContentWrapper } from "./sections/styles/shared/layout";
 import ListeningOverlay from "./sections/ListeningOverlay";
-import ResultsPanel from './views/ResultsPanel';
 import ReasonPanel from './views/ReasonPanel';
 import InputForm from './views/InputForm';
-import SuccessPanel from './views/SuccessPanel';
+import { fonts } from "./sections/styles/tokens";
 
 import BackgroundCanvas from '@/components/mobile/BackgroundCanvas';
+import brandLogo from "@/components/furon_logo.png";
 
 export default function MobileControls() {
   const router = useRouter();
@@ -95,11 +97,11 @@ export default function MobileControls() {
   const paragraphs = [p1, p2, p3, p4];
   const fullTypedText = recommendations ? paragraphs.join('\n\n') : null;
 
-  const { typedReason, showReason, showHighlights, showResults: typewriterShowResults } = useTypewriter(
+  const { typedReason, showReason, showHighlights } = useTypewriter(
     fullTypedText
   );
 
-  const { fadeText, localShowResults } = usePostTypingShowcase({ fullTypedText, typedReason, recommendations, setOrchestratingLock });
+  const { fadeText, localShowResults, resetShowcase } = usePostTypingShowcase({ fullTypedText, typedReason, recommendations, setOrchestratingLock });
 
   // (Typewriter, weather, press handlers moved to hooks above)
 
@@ -142,14 +144,12 @@ export default function MobileControls() {
     setTypedReason("");
     setShowHighlights(false);
     setShowResults(false);
-    setFadeText(false);
-    setLocalShowResults(false);
-    setOrbShowcaseStarted(false);
+    resetShowcase();
     if (typeof window !== 'undefined') {
       window.showFinalOrb = false;
       window.showCenterGlow = false;
     }
-  }, []);
+  }, [resetShowcase]);
 
   
 
@@ -168,9 +168,19 @@ export default function MobileControls() {
     };
   }, []);
 
+  const showBrandLogo = submitted && (loading || orchestratingLock || recommendations);
+
   return (
     <AppContainer $isModal={isModal}>
-      <BackgroundCanvas cameraMode="default" />
+      {showBrandLogo && (
+        <BrandLogoWrap>
+          <Image src={brandLogo} alt="Furon" priority />
+        </BrandLogoWrap>
+      )}
+      <BackgroundCanvas
+        cameraMode="default"
+        showMoodWords={!submitted && showPress}
+      />
       <ContentWrapper $isModal={isModal}>
         {!submitted && !isListening && (
           <>
@@ -211,8 +221,6 @@ export default function MobileControls() {
           <>
             <OrchestratingScreen />
           </>
-        ) : recommendations && localShowResults ? (
-          <ResultsPanel name={name} recommendations={recommendations} onReset={handleReset} />
         ) : recommendations && showReason ? (
           <ReasonPanel
             typedReason={typedReason}
@@ -221,14 +229,61 @@ export default function MobileControls() {
             showHighlights={showHighlights}
             fadeText={fadeText}
           />
-        ) : recommendations && localShowResults ? (
-          <ResultsPanel name={name} recommendations={recommendations} onReset={handleReset} />
-        ) : (
-          <SuccessPanel />
-        )}
+        ) : (recommendations && localShowResults && !loading && !orchestratingLock) ? (
+          <ResetButtonWrap>
+            <ResetButton type="button" onClick={handleReset}>
+              다시 입력하기
+            </ResetButton>
+          </ResetButtonWrap>
+        ) : null}
         {/* Note: moved keyframe animations to globals.css to avoid JSX parsing issues */}
       </ContentWrapper>
       <BlobControls />
     </AppContainer>
   );
 }
+
+const ResetButtonWrap = styled.div`
+  position: fixed;
+  bottom: clamp(32px, 12vh, 80px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1800;
+  pointer-events: auto;
+`;
+
+const ResetButton = styled.button`
+  padding: 0.85rem 2.6rem;
+  border-radius: 999px;
+  border: none;
+  font-family: ${fonts.ui};
+  font-weight: 700;
+  font-size: 1rem;
+  color: white;
+  background: linear-gradient(135deg, #9333EA 0%, #EC4899 100%);
+  box-shadow: 0 12px 30px rgba(147, 51, 234, 0.35);
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+
+  &:active {
+    transform: translateY(2px);
+    box-shadow: 0 6px 18px rgba(147, 51, 234, 0.25);
+  }
+`;
+
+const BrandLogoWrap = styled.div`
+  position: fixed;
+  top: clamp(20px, 6vh, 44px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: clamp(16px, 5vw, 24px);
+  height: clamp(16px, 5vw, 24px);
+  z-index: 2200;
+  pointer-events: none;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+`;

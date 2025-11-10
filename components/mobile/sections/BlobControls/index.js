@@ -4,22 +4,27 @@ import { fonts } from '../styles/tokens';
 export default function BlobControls() {
   const [open, setOpen] = useState(false);
 
-  const [centerX, setCenterX] = useState(39);
-  const [centerY, setCenterY] = useState(33);
+  const [centerX, setCenterX] = useState(41);
+  const [centerY, setCenterY] = useState(23);
   const [start, setStart] = useState(50);
   const [end, setEnd] = useState(99);
   const [blurPx, setBlurPx] = useState(52);
   const [rimTilt, setRimTilt] = useState(30);
   const [feather, setFeather] = useState(15);
   const [innerBlur, setInnerBlur] = useState(20);
-  const [color0, setColor0] = useState('#D1CEDF');
-  const [color1, setColor1] = useState('#F2D4D2');
-  const [color2, setColor2] = useState('#FFB8D3');
-  const [color3, setColor3] = useState('#EBDDE1');
-  const [color4, setColor4] = useState('#D8D9E6');
+  const [color0, setColor0] = useState('#F7F7E8');
+  const [color1, setColor1] = useState('#F4E9D7');
+  const [color2, setColor2] = useState('#F79CBF');
+  const [color3, setColor3] = useState('#C5F7EA');
+  const [color4, setColor4] = useState('#C8F4E9');
   const [tintAlpha, setTintAlpha] = useState(0.85);
   const [boost, setBoost] = useState(1.9);
-
+  const [bgTop, setBgTop] = useState('#ECF8FA');
+  const [bgMid, setBgMid] = useState('#FAFDFF');
+  const [bgLow, setBgLow] = useState('#FFE0F8');
+  const [bgBottom, setBgBottom] = useState('#FFF0FB');
+  const [bgMidStop, setBgMidStop] = useState(23);
+  const [bgLowStop, setBgLowStop] = useState(64);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -27,9 +32,15 @@ export default function BlobControls() {
       centerX, centerY, start, end, blurPx, rimTilt, feather, innerBlur,
       color0, color1, color2, color3, color4, tintAlpha, boost
     };
-  }, [centerX, centerY, start, end, blurPx, rimTilt, feather, innerBlur, color0, color1, color2, color3, color4, tintAlpha, boost]);
-
-  // Background is fixed; no background settings are exposed here.
+    window.bgSettings = {
+      top: bgTop,
+      mid: bgMid,
+      low: bgLow,
+      bottom: bgBottom,
+      midStop: bgMidStop,
+      lowStop: bgLowStop,
+    };
+  }, [centerX, centerY, start, end, blurPx, rimTilt, feather, innerBlur, color0, color1, color2, color3, color4, tintAlpha, boost, bgTop, bgMid, bgLow, bgBottom, bgMidStop, bgLowStop]);
 
   const row = useMemo(() => ({ display: 'flex', alignItems: 'center', gap: 8 }), []);
   const label = useMemo(() => ({ width: 84, fontWeight: 600, color: '#444', fontFamily: fonts.ui }), []);
@@ -78,8 +89,13 @@ export default function BlobControls() {
             <input type="color" value={color3} onChange={(e) => setColor3(e.target.value)} />
             <input type="color" value={color4} onChange={(e) => setColor4(e.target.value)} />
           </div>
-
-          {/* Background controls removed (fixed palette). */}
+          <div style={{ fontFamily: fonts.ui, fontWeight: 800, margin: '16px 0 8px' }}>Background</div>
+          <div style={row}><div style={label}>Top</div><input type="color" value={bgTop} onChange={(e) => setBgTop(e.target.value)} /></div>
+          <div style={row}><div style={label}>Mid</div><input type="color" value={bgMid} onChange={(e) => setBgMid(e.target.value)} /></div>
+          <div style={row}><div style={label}>Low</div><input type="color" value={bgLow} onChange={(e) => setBgLow(e.target.value)} /></div>
+          <div style={row}><div style={label}>Bottom</div><input type="color" value={bgBottom} onChange={(e) => setBgBottom(e.target.value)} /></div>
+          <div style={row}><div style={label}>Mid Stop</div><input type="range" min="0" max={bgLowStop - 1} value={bgMidStop} onChange={(e) => setBgMidStop(Math.min(Number(e.target.value), bgLowStop - 1))} /><div style={number}>{bgMidStop}%</div></div>
+          <div style={row}><div style={label}>Low Stop</div><input type="range" min={bgMidStop + 1} max="100" value={bgLowStop} onChange={(e) => setBgLowStop(Math.max(Number(e.target.value), bgMidStop + 1))} /><div style={number}>{bgLowStop}%</div></div>
         </div>
       )}
     </div>

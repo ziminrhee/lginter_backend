@@ -2,14 +2,11 @@
 
 import styled from 'styled-components';
 import { fonts } from '../styles/tokens';
-import { z } from '../styles/shared/elevation';
 import { Overlay } from '../styles/shared/overlay';
 import { CircleWrap as CircleWrapBase } from '../styles/shared/circle';
 
 export const Container = styled(Overlay)``;
 export const CircleWrap = styled(CircleWrapBase)``;
-
- 
 
 export const Text = styled.div`
   position: absolute;

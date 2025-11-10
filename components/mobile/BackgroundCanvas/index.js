@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import * as S from './styles'
 
-export default function BackgroundCanvas({ cameraMode = 'default' }) {
+const MOOD_WORDS = ['즐거워', '상쾌해', '지루해', '찝찝해', '불쾌해']
+
+export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords = true }) {
   const [mounted, setMounted] = useState(false)
   const [pressProgress, setPressProgress] = useState(0)
   const [isListeningFlag, setIsListeningFlag] = useState(false)
@@ -18,9 +20,12 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
   const [showCenterGlow, setShowCenterGlow] = useState(false)
   const [keywordLabels, setKeywordLabels] = useState([])
   const [showKeywords, setShowKeywords] = useState(false)
+  const [showMoodWordsDelayed, setShowMoodWordsDelayed] = useState(false)
+  const [isVoiceActive, setIsVoiceActive] = useState(false)
+  const moodLoop = useMemo(() => [...MOOD_WORDS, MOOD_WORDS[0]], [])
   const [blobSettings, setBlobSettings] = useState({
-    centerX: 39,
-    centerY: 33,
+    centerX: 41,
+    centerY: 23,
     start: 50,
     end: 99,
     blurPx: 52,
@@ -28,21 +33,22 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
     feather: 15,
     innerBlur: 20,
     // Five-stop palette from reference: 0,13,47,78,100
-    color0: '#D1CEDF', // 0%
-    color1: '#F2D4D2', // 13%
-    color2: '#FFB8D3', // 47%
-    color3: '#EBDDE1', // 78%
-    color4: '#D8D9E6', // 100%
+    color0: '#F7F7E8', // 0%
+    color1: '#F4E9D7', // 13%
+    color2: '#F79CBF', // 47%
+    color3: '#C5F7EA', // 78%
+    color4: '#C8F4E9', // 100%
     tintAlpha: 0.85,
     boost: 1.9,
   })
-  // Fixed background palette (per latest request)
-  const BG_TOP = '#F4EBED'
-  const BG_MID = '#FFFAFF'
-  const BG_LOW = '#FFEBF8'
-  const BG_BOTTOM = '#D3D0E2'
-  const BG_MID_STOP = 30
-  const BG_LOW_STOP = 60
+  const [bgSettings, setBgSettings] = useState({
+    top: '#ECF8FA',
+    mid: '#FAFDFF',
+    low: '#FFE0F8',
+    bottom: '#FFF0FB',
+    midStop: 23,
+    lowStop: 64,
+  })
 
   useEffect(() => {
     setMounted(true)
@@ -106,12 +112,47 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
         if (window.showCenterGlow !== undefined) setShowCenterGlow(Boolean(window.showCenterGlow))
         if (window.keywordLabels !== undefined) setKeywordLabels(Array.isArray(window.keywordLabels) ? window.keywordLabels : [])
         if (window.showKeywords !== undefined) setShowKeywords(Boolean(window.showKeywords))
-        // Background is fixed now; ignore window.bgSettings
+        if (window.isListening !== undefined) setIsVoiceActive(Boolean(window.isListening))
+        if (window.bgSettings) {
+          const bg = window.bgSettings
+          setBgSettings(prev => ({
+            top: typeof bg.top === 'string' ? bg.top : prev.top,
+            mid: typeof bg.mid === 'string' ? bg.mid : prev.mid,
+            low: typeof bg.low === 'string' ? bg.low : prev.low,
+            bottom: typeof bg.bottom === 'string' ? bg.bottom : prev.bottom,
+            ...(() => {
+              const maybeMid = Number(bg.midStop)
+              const maybeLow = Number(bg.lowStop)
+              let newMid = Number.isFinite(maybeMid) ? maybeMid : prev.midStop
+              let newLow = Number.isFinite(maybeLow) ? maybeLow : prev.lowStop
+              newMid = Math.max(0, Math.min(newMid, 99))
+              newLow = Math.max(1, Math.min(newLow, 100))
+              if (newLow <= newMid) {
+                newLow = Math.min(100, newMid + 1)
+              }
+              newMid = Math.min(newMid, newLow - 1)
+              return { midStop: newMid, lowStop: newLow }
+            })(),
+          }))
+        }
       }
       requestAnimationFrame(check)
     }
     check()
   }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    let timer
+    if (showMoodWords) {
+      timer = setTimeout(() => setShowMoodWordsDelayed(true), 2000)
+    } else {
+      setShowMoodWordsDelayed(false)
+    }
+    return () => {
+      if (timer) clearTimeout(timer)
+    }
+  }, [showMoodWords, mounted])
 
   if (!mounted) {
     return (
@@ -123,28 +164,42 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
   const pressEase = pressProgress * pressProgress * (3.0 - 2.0 * pressProgress)
   
   // 모바일 페이지에서 크기와 위치 (fixed)
-  const blobSize = 350
   const blobTop = '60%'
   
+  const baseBlobSize = 350
+  const idleScaleFactor = 320 / baseBlobSize
+  const listeningScaleFactor = 1
+  const uiScaleFactor = isVoiceActive ? listeningScaleFactor : idleScaleFactor
   // 프레스 시 화이트아웃 제거: 블러/밝기 증가 사용하지 않음
   const blurIncrease = 0
   const brightnessIncrease = 1
+  const saturationValue = isVoiceActive ? 1.35 : 1
+  const boostedTintAlpha = Math.min(1, blobSettings.tintAlpha * (isVoiceActive ? 1.05 : 1))
+  const boostedOuterBoost = Math.min(2.2, blobSettings.boost * (isVoiceActive ? 1.08 : 1))
+  const uiScaleTransitionMs = 240
   // Figma-provided orbit shapes scale helpers
   const designBase = 350
   const blurBase = 50
-  const blurPx = Math.round(blurBase * (blobSize / designBase))
-  const shape1W = blobSize * 0.534 // ≈ 187/350
-  const shape1H = blobSize * 0.554 // ≈ 194/350
-  const shape2W = blobSize * 0.735 // ≈ 257/350
-  const shape2H = blobSize * 0.763 // ≈ 267/350
+  const blurPx = Math.round(blurBase * (baseBlobSize / designBase))
+  const shape1W = baseBlobSize * 0.534 // ≈ 187/350
+  const shape1H = baseBlobSize * 0.554 // ≈ 194/350
+  const shape2W = baseBlobSize * 0.735 // ≈ 257/350
+  const shape2H = baseBlobSize * 0.763 // ≈ 267/350
+  const blobSize = baseBlobSize
 
-  const bgGradient = `linear-gradient(to bottom, ${BG_TOP} 0%, ${BG_MID} ${BG_MID_STOP}%, ${BG_LOW} ${BG_LOW_STOP}%, ${BG_BOTTOM} 100%)`
+  const bgGradient = `linear-gradient(to bottom, ${bgSettings.top} 0%, ${bgSettings.mid} ${bgSettings.midStop}%, ${bgSettings.low} ${bgSettings.lowStop}%, ${bgSettings.bottom} 100%)`
 
   return (
     <S.Root $bg={bgGradient}>
       <S.KeyframesGlobal $blurIncrease={0} $blobSize={blobSize} $orbitRadiusScale={orbitRadiusScale} />
       <S.BlobCssGlobal />
-      <S.BlobWrapper $top={blobTop} $size={blobSize} $opacity={blobAlpha} $opacityMs={blobOpacityMs} $brightness={brightnessIncrease}>
+      <S.BlobWrapper
+        $top={blobTop}
+        $size={blobSize}
+        $opacity={blobAlpha}
+        $opacityMs={blobOpacityMs}
+        $brightness={brightnessIncrease}
+      >
         <S.BGGlow />
         <S.Cluster $spin={clusterSpin}>
             {showOrbits && (
@@ -157,19 +212,6 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
                 <S.OrbitWrap $d={blobSize * 0.84} $anim={'orbitCCW 14s linear infinite'}>
                   <S.OrbitShape $rotate={-144.552} $w={shape2W} $h={shape2H} $blur={blurPx} $bg={'linear-gradient(180deg, #FC8AD6 0%, #FFD8E0 75.48%)'} />
                 </S.OrbitWrap>
-                {/* keyword labels rendered outside orbit containers to avoid inheriting rotation */}
-                {showKeywords ? (
-                  <>
-                    {/* Temp (CW) */}
-                    {keywordLabels[0] ? (<S.Label $anim={'labelCW 12s linear infinite'}>{keywordLabels[0]}</S.Label>) : null}
-                    {/* Humidity (CCW) */}
-                    {keywordLabels[1] ? (<S.Label $anim={'labelCCW 14s linear infinite'}>{keywordLabels[1]}</S.Label>) : null}
-                    {/* Light color name (CW, bottom offset) */}
-                    {keywordLabels[2] ? (<S.Label $anim={'labelCWBottom 12s linear infinite'}>{keywordLabels[2]}</S.Label>) : null}
-                    {/* Music mood (CCW, bottom offset) */}
-                    {keywordLabels[3] ? (<S.Label $anim={'labelCCWBottom 14s linear infinite'}>{keywordLabels[3]}</S.Label>) : null}
-                  </>
-                ) : null}
                 {/* New entering orb (from outside, then joins rotation) */}
                 {newOrbEnter && (
                   <S.NewOrbWrap $d={blobSize * 0.92}>
@@ -205,14 +247,19 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
                 '--c3': `${blobSettings.color3}`,
                 '--c4': `${blobSettings.color4}`,
                 '--bg': `radial-gradient(circle at var(--center-x) var(--center-y), var(--c0) 0%, var(--c1) 13%, var(--c2) 47%, var(--c3) 78%, var(--c4) 100%)`,
-                '--tint-alpha': blobSettings.tintAlpha,
-                '--boost': blobSettings.boost,
+                '--tint-alpha': boostedTintAlpha,
+                '--boost': boostedOuterBoost,
                 width: `${blobSize}px`,
                 aspectRatio: '1 / 1',
-                transform: `translateZ(0) scale(${blobScale})`,
-                transition: `transform ${blobScaleMs}ms ease, opacity ${blobOpacityMs}ms ease, filter ${blobOpacityMs}ms ease`,
+                transform: `translateZ(0) scale(${blobScale * uiScaleFactor})`,
+                transition: `transform ${uiScaleTransitionMs}ms ease, opacity ${blobOpacityMs}ms ease, filter ${blobOpacityMs}ms ease`,
                 opacity: mainBlobFade ? 0 : 1,
-                filter: mainBlobFade ? 'blur(10px)' : 'none',
+                filter: (() => {
+                  const filters = []
+                  if (mainBlobFade) filters.push('blur(10px)')
+                  if (saturationValue !== 1) filters.push(`saturate(${saturationValue})`)
+                  return filters.length ? filters.join(' ') : 'none'
+                })(),
                 ...(isListeningFlag ? {
                   animation: 'none',
                   '--start-wobble': 'calc(12% - var(--start))',
@@ -225,6 +272,41 @@ export default function BackgroundCanvas({ cameraMode = 'default' }) {
               <div className="ring-boost" />
             </div>
           </S.Cluster>
+        {showMoodWords && (
+          <S.MoodWords $visible={showMoodWordsDelayed} style={{ '--loop-steps': moodLoop.length - 1, '--cycle-duration': '7.2s' }}>
+            <S.MoodTrack>
+              {moodLoop.map((word, idx) => (
+                <S.MoodWord key={`${word}-${idx}`}>
+                  {word}
+                </S.MoodWord>
+              ))}
+            </S.MoodTrack>
+          </S.MoodWords>
+        )}
+        {showKeywords && (
+          <S.KeywordLayer $visible={showKeywords}>
+            {keywordLabels[0] ? (
+              <S.KeywordItem $pos="top" $visible={showKeywords}>
+                {keywordLabels[0]}
+              </S.KeywordItem>
+            ) : null}
+            {keywordLabels[1] ? (
+              <S.KeywordItem $pos="left" $visible={showKeywords}>
+                {keywordLabels[1]}
+              </S.KeywordItem>
+            ) : null}
+            {keywordLabels[2] ? (
+              <S.KeywordItem $pos="bottom" $visible={showKeywords}>
+                {keywordLabels[2]}
+              </S.KeywordItem>
+            ) : null}
+            {keywordLabels[3] ? (
+              <S.KeywordItem $pos="right" $visible={showKeywords}>
+                {keywordLabels[3]}
+              </S.KeywordItem>
+            ) : null}
+          </S.KeywordLayer>
+        )}
         </S.BlobWrapper>
     </S.Root>
   )

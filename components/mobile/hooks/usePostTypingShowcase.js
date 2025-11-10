@@ -1,20 +1,34 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
 export default function usePostTypingShowcase({ fullTypedText, typedReason, recommendations, setOrchestratingLock }) {
   const [fadeText, setFadeText] = useState(false);
   const [localShowResults, setLocalShowResults] = useState(false);
   const [orbShowcaseStarted, setOrbShowcaseStarted] = useState(false);
+  const timersRef = useRef([]);
+
+  const resetShowcase = useCallback(() => {
+    setFadeText(false);
+    setLocalShowResults(false);
+    setOrbShowcaseStarted(false);
+    timersRef.current.forEach((id) => clearTimeout(id));
+    timersRef.current = [];
+  }, []);
 
   useEffect(() => {
     if (!fullTypedText) return;
     if (typedReason && typedReason.length >= fullTypedText.length && !orbShowcaseStarted) {
+      console.log('[Showcase] Triggering orbit sequence', {
+        typedLen: typedReason.length,
+        fullLen: fullTypedText.length,
+        orbShowcaseStarted
+      });
       setOrbShowcaseStarted(true);
+      timersRef.current.forEach((id) => clearTimeout(id));
+      timersRef.current = [];
 
       const TEXT_HOLD_MS = 2000;
       const ORBIT_SOLO_MS = 3000;
       const LABEL_HOLD_MS = 2000;
-
-      const timers = [];
 
       let colorName = '조명';
       let musicLabel = '';
@@ -73,26 +87,31 @@ export default function usePostTypingShowcase({ fullTypedText, typedReason, reco
           const t3 = setTimeout(() => {
             setLocalShowResults(true);
             if (typeof setOrchestratingLock === 'function') setOrchestratingLock(false);
-            if (typeof window !== 'undefined') {
-              window.showKeywords = false;
-              window.showFinalOrb = false;
-              window.showCenterGlow = false;
-              window.clusterSpin = false;
-              window.mainBlobFade = false;
-              window.newOrbEnter = false;
-            }
+            timersRef.current = timersRef.current.filter((id) => id !== t3);
           }, LABEL_HOLD_MS);
-          timers.push(t3);
+          timersRef.current.push(t3);
+          timersRef.current = timersRef.current.filter((id) => id !== t2);
         }, ORBIT_SOLO_MS);
-        timers.push(t2);
+        timersRef.current.push(t2);
+        timersRef.current = timersRef.current.filter((id) => id !== t1);
       }, TEXT_HOLD_MS);
-      timers.push(t1);
-
-      return () => { timers.forEach((id) => clearTimeout(id)); };
+      timersRef.current.push(t1);
     }
+    console.log('[Showcase] Waiting for typewriter completion', {
+      typedLen: typedReason ? typedReason.length : 0,
+      fullLen: fullTypedText.length,
+      orbShowcaseStarted
+    });
   }, [typedReason, fullTypedText, orbShowcaseStarted, recommendations, setOrchestratingLock]);
 
-  return { fadeText, localShowResults };
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach((id) => clearTimeout(id));
+      timersRef.current = [];
+    };
+  }, []);
+
+  return { fadeText, localShowResults, resetShowcase };
 }
 
 
