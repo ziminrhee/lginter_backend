@@ -39,7 +39,7 @@ export default function useControllerOrchestrator({ emit }) {
 
       try {
         const userRecord = ensureUser(usersMap, userId, payload.ts || now);
-        const { env: individualEnv, reason } = await requestControllerDecision({
+        const { env: individualEnv, reason, flags, emotionKeyword } = await requestControllerDecision({
           userId,
           userContext: userRecord,
           lastDecision: state.lastDecision,
@@ -72,6 +72,8 @@ export default function useControllerOrchestrator({ emit }) {
           userId,
           params: mergedEnv,
           reason: aggregatedReason,
+          flags,
+          emotionKeyword,
         });
       } catch (error) {
         const fallbackEnv = controllerStateRef.current.lastDecision?.env || DEFAULT_ENV;
@@ -94,6 +96,8 @@ export default function useControllerOrchestrator({ emit }) {
           userId,
           params: { ...fallbackEnv },
           reason: fallbackReason,
+          flags: { offTopic: false, abusive: false },
+          emotionKeyword: '',
         });
       }
     },

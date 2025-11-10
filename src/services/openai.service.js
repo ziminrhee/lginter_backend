@@ -34,7 +34,9 @@ export async function decideEnv({ systemPrompt, latestConversation, currentProgr
     try { parsed = m ? JSON.parse(m[0]) : null; } catch {}
     const params = parsed?.params || parsed || { temp: 24, humidity: 50, lightColor: '#FFFFFF', music: 'ambient' };
     const reason = parsed?.reason || 'ai-generated';
-    return { updatedProgram: { text: content, version: (currentProgram?.version || 0) + 1, reason }, params, reason };
+    const flags = parsed?.flags || { offTopic: false, abusive: false };
+    const emotionKeyword = parsed?.emotionKeyword || '';
+    return { updatedProgram: { text: content, version: (currentProgram?.version || 0) + 1, reason }, params, reason, flags, emotionKeyword };
   });
 
   try {

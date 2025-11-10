@@ -1,22 +1,21 @@
-// 16 fixed music tracks catalog used by controller decisions
-// Keep ids stable; UI or devices can map ids to actual playback sources
+// 16 fixed music tracks catalog used by controller decisions (ids must remain stable)
 export const MUSIC_CATALOG = [
-  { id: 'uplift-01', title: 'Life is Soft', artist: 'Bunho', mood: ['긍정','활력'], tags: ['uplifting','bright'] },
-  { id: 'uplift-02', title: 'Morning Rays', artist: 'Studio A', mood: ['밝음','희망'], tags: ['daylight','acoustic'] },
-  { id: 'calm-01',   title: 'Cozy Humidification', artist: 'Atmo', mood: ['차분','안정'], tags: ['ambient','warm'] },
-  { id: 'calm-02',   title: 'Soft Linen', artist: 'Clouds', mood: ['휴식','나른'], tags: ['lofi','soft'] },
-  { id: 'focus-01',  title: 'Deep Focus', artist: 'Flow', mood: ['집중','냉정'], tags: ['minimal','steady'] },
-  { id: 'focus-02',  title: 'Pulse Lines', artist: 'Sequence', mood: ['집중','기계적'], tags: ['tech','pattern'] },
-  { id: 'neutral-01',title: 'Neutral Air', artist: 'Mono', mood: ['중립'], tags: ['neutral','light'] },
-  { id: 'neutral-02',title: 'Center', artist: 'Axis', mood: ['중립'], tags: ['simple','calm'] },
-  { id: 'happy-01',  title: 'Pocket Sunshine', artist: 'Jelly', mood: ['행복','밝음'], tags: ['cute','pop'] },
-  { id: 'happy-02',  title: 'Glitter Road', artist: 'LightLab', mood: ['설렘','기대'], tags: ['sparkle','pop'] },
-  { id: 'sad-01',    title: 'Grey Window', artist: 'RainLab', mood: ['우울','서정'], tags: ['piano','slow'] },
-  { id: 'sad-02',    title: 'Distant Street', artist: 'Night', mood: ['쓸쓸'], tags: ['jazz','nocturne'] },
-  { id: 'angry-01',  title: 'Cooling Down', artist: 'Breathe', mood: ['분노','진정'], tags: ['breath','slow'] },
-  { id: 'angry-02',  title: 'Ground', artist: 'Root', mood: ['분노','안정'], tags: ['drone','earth'] },
-  { id: 'tired-01',  title: 'Warm Blanket', artist: 'Home', mood: ['피곤','휴식'], tags: ['warm','rest'] },
-  { id: 'tired-02',  title: 'Late Tea', artist: 'Leaf', mood: ['피곤','회복'], tags: ['lofi','warm'] },
+  { id: 'life-is-scott',          title: 'Life is',                    artist: 'Scott Burkely', mood: ['평온'],                 tags: ['calm','peaceful'] },
+  { id: 'glow-scott',             title: 'Glow',                       artist: 'Scott Burkely', mood: ['편안'],                 tags: ['warm','cozy'] },
+  { id: 'clean-soul',             title: 'Clean Soul',                 artist: 'Kevin MacLeod', mood: ['느긋'],                 tags: ['relaxed','easy'] },
+  { id: 'borealis',               title: 'Borealis',                   artist: 'Scott Burkely', mood: ['심심함'],               tags: ['neutral','ambient'] },
+  { id: 'solstice',               title: 'Solstice',                   artist: 'Scott Burkely', mood: ['고독'],                 tags: ['solitude','quiet'] },
+  { id: 'new-beginnings',         title: 'New Beginnings',             artist: 'Tokyo Music Walker', mood: ['무력'],           tags: ['low-energy','soft'] },
+  { id: 'solace',                 title: 'Solace',                     artist: 'Scott Burkely', mood: ['공허','번아웃'],        tags: ['soothing','recovery'] },
+  { id: 'travelling-symphony',    title: 'the travelling symphony',    artist: 'savfk',          mood: ['짜증','슬픔'],         tags: ['orchestral','dramatic'] },
+  { id: 'happy-stroll',           title: 'happy stroll',               artist: '331music',       mood: ['감격','기쁨'],         tags: ['happy','bright'] },
+  { id: 'ukulele-dance',          title: 'Ukulele Dance',              artist: 'Derek Fiechter & Brandon Fiechter', mood: ['완전한 휴식'], tags: ['rest','easy'] },
+  { id: 'happy-alley',            title: 'Happy Alley',                artist: 'Kevin MacLeod',  mood: ['만족','설렘'],         tags: ['cute','pop'] },
+  { id: 'sunny-side-up',          title: 'sunny side up',              artist: 'Victor Lundberg', mood: ['기대','기쁨','드라마틱'], tags: ['uplift','cinematic'] },
+  { id: 'amberlight',             title: 'Amberlight',                 artist: 'Scott Burkely',  mood: ['긴장','당혹'],         tags: ['tense','mild'] },
+  { id: 'shoulders-of-giants',    title: 'Shoulders Of Giants',        artist: 'Scott Burkely',  mood: ['갈증','성공'],         tags: ['drive','achieve'] },
+  { id: 'echoes',                 title: 'Echoes',                     artist: 'Scott Burkely',  mood: ['해방','편안함','나아감'], tags: ['release','progress'] },
+  { id: 'a-kind-of-hope',         title: 'A Kind Of Hope',             artist: 'Scott Burkely',  mood: ['부정적인 마음을 긍정적으로'], tags: ['positive','reframing'] },
 ];
 
 

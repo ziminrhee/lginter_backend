@@ -20,8 +20,14 @@ export async function requestControllerDecision({ userId, userContext, lastDecis
   });
 
   return {
-    env: normalizeEnv(result?.params, userContext?.lastVoice?.emotion || ''),
+    env: normalizeEnv(
+      result?.params,
+      userContext?.lastVoice?.emotion || '',
+      { season: 'winter' }
+    ),
     reason: result?.reason || 'AI generated',
+    flags: result?.flags || { offTopic: false, abusive: false },
+    emotionKeyword: result?.emotionKeyword || '',
   };
 }
 

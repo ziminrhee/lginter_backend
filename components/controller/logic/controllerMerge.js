@@ -1,18 +1,20 @@
 // Pure merge/normalize utils for Controller
 import { DEFAULT_ENV } from '../stateStore';
-import { normalizeTemperature } from '@/utils/policies/temperature.policy';
-import { normalizeHumidity } from '@/utils/policies/humidity.policy';
+import { normalizeTemperature, normalizeWindLevel } from '@/utils/policies/temperature.policy';
+import { normalizeHumidity, decidePurifierSettings } from '@/utils/policies/humidity.policy';
 import { normalizeLightColor } from '@/utils/policies/lightColor.policy';
 import { normalizeMusic } from '@/utils/policies/music.policy';
 
-export function normalizeEnv(params, emotionHint) {
+export function normalizeEnv(params, emotionHint, context = {}) {
   if (!params) return { ...DEFAULT_ENV };
-  return {
-    temp: normalizeTemperature(params.temp),
-    humidity: normalizeHumidity(params.humidity),
-    lightColor: normalizeLightColor(params.lightColor),
-    music: normalizeMusic(params.music, emotionHint),
-  };
+  const temp = normalizeTemperature(params.temp, context);
+  const humidity = normalizeHumidity(params.humidity, emotionHint);
+  const windLevel = normalizeWindLevel(params.windLevel, emotionHint);
+  const softTone = /부드럽|편안|휴식|따뜻/.test(String(emotionHint || ''));
+  const lightColor = normalizeLightColor(params.lightColor, { soft: softTone });
+  const music = normalizeMusic(params.music, emotionHint);
+  const purifier = decidePurifierSettings(humidity, emotionHint);
+  return { temp, humidity, windLevel, lightColor, music, ...purifier };
 }
 
 export function computeFairAverage(entries) {

@@ -25,6 +25,7 @@ export default function MobileControls() {
   const isModal = router?.query?.variant === 'modal';
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState(null);
+  const [notice, setNotice] = useState(null);
   const { emitNewName, emitNewVoice, socket } = useSocketMobile({
     onMobileDecision: (payload) => {
       // payload: { userId, params: { temp, humidity, lightColor, music }, reason }
@@ -33,9 +34,21 @@ export default function MobileControls() {
         humidity: payload?.params?.humidity,
         lightColor: payload?.params?.lightColor,
         song: payload?.params?.music,
-        reason: payload?.reason
+        windLevel: payload?.params?.windLevel,
+        purifierOn: payload?.params?.purifierOn,
+        purifierMode: payload?.params?.purifierMode,
+        reason: payload?.reason,
+        emotionKeyword: payload?.emotionKeyword,
+        flags: payload?.flags
       };
       setRecommendations(rec);
+      if (payload?.flags?.abusive) {
+        setNotice('정중한 표현으로 다시 말씀해 주세요.');
+        setTimeout(() => setNotice(null), 2500);
+      } else if (payload?.flags?.offTopic) {
+        setNotice('새로운 대답이네요! 적절한 값을 추천했어요.');
+        setTimeout(() => setNotice(null), 2000);
+      }
       setLoading(false);
     }
   });
@@ -176,6 +189,7 @@ export default function MobileControls() {
           <Image src="/brand/furon_logo.png" alt="Furon" priority width={24} height={24} />
         </BrandLogoWrap>
       )}
+      {notice && <Notice>{notice}</Notice>}
       <BackgroundCanvas
         cameraMode="default"
         showMoodWords={!submitted && showPress}
@@ -285,4 +299,16 @@ const BrandLogoWrap = styled.div`
     height: 100%;
     object-fit: contain;
   }
+`;
+
+const Notice = styled.div`
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  z-index: 2300;
 `;
