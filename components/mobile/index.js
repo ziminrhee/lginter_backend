@@ -2,6 +2,227 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import useSocketMobile from "@/utils/hooks/useSocketMobile";
 import useOpenAIAnalysis from "@/utils/hooks/useOpenAIAnalysis";
+import OrchestratingScreen from "./sections/OrchestratingScreen";
+import HeroText from "./sections/HeroText";
+import PressOverlay from "./sections/PressOverlay";
+import HiddenForm from "./sections/HiddenForm";
+import ListeningOverlay from "./sections/ListeningOverlay";
+import BlobControls from "./sections/BlobControls";
+import useLongPressProgress from "./hooks/useLongPressProgress";
+import useSpeechRecognition from "./hooks/useSpeechRecognition";
+import useWeatherGreeting from "./hooks/useWeatherGreeting";
+import { appContainer, contentWrapper } from "./modules/shared/layout";
+
+export default function MobileControls() {
+  const router = useRouter();
+  const isModal = router?.query?.variant === 'modal';
+
+  const { emitNewName, emitNewVoice, socket } = useSocketMobile();
+  const { loading, recommendations, analyze, reset } = useOpenAIAnalysis(socket);
+
+  const [name, setName] = useState("");
+  const [mood, setMood] = useState("");
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [showPress, setShowPress] = useState(false);
+  const [listeningStage, setListeningStage] = useState('idle'); // idle | live | finalHold | fadeOut
+  const [showResetDelayed, setShowResetDelayed] = useState(false);
+
+  const orchestratingStartAtRef = useRef(null);
+  const [orchestratingLock, setOrchestratingLock] = useState(false);
+  const orchestrateMinMs = 2000;
+  const weatherGreeting = useWeatherGreeting();
+
+  const { isListening, startVoiceRecognition } = useSpeechRecognition({
+    onStart: () => {
+      setListeningStage('live');
+    },
+    onInterim: (text) => {
+      setLiveTranscript(text);
+    },
+    onResult: ({ transcript }) => {
+      setMood(transcript);
+      setLiveTranscript("");
+      if (!name.trim()) setName('사용자');
+      setListeningStage('finalHold');
+      setTimeout(() => setListeningStage('fadeOut'), 600);
+      setTimeout(() => setListeningStage('idle'), 1100);
+    }
+  });
+
+  // orchestrating 락 유지 시간 보장
+  useEffect(() => {
+    if (loading) {
+      orchestratingStartAtRef.current = Date.now();
+      setOrchestratingLock(true);
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    if (!loading && orchestratingStartAtRef.current && orchestratingLock) {
+      const elapsed = Date.now() - orchestratingStartAtRef.current;
+      const remaining = Math.max(0, orchestrateMinMs - elapsed);
+      const t = setTimeout(() => setOrchestratingLock(false), remaining);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [loading, orchestratingLock]);
+
+  // 결과 노출 후 3초 뒤 버튼 표시
+  useEffect(() => {
+    if (!loading && !orchestratingLock && submitted && recommendations) {
+      setShowResetDelayed(false);
+      const t = setTimeout(() => setShowResetDelayed(true), 3000);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [submitted, recommendations, loading, orchestratingLock]);
+
+  const { pressProgress, handlePressStart, handlePressEnd } = useLongPressProgress({
+    onCompleted: () => startVoiceRecognition()
+  });
+
+  const handleSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    if (!name.trim() || !mood.trim()) {
+      return;
+    }
+    const userId = name.trim();
+    try {
+      socket?.emit('mobile-init', { userId });
+    } catch {}
+    emitNewName(name.trim(), { userId, mood: mood.trim() });
+    emitNewVoice(mood.trim(), mood.trim(), 0.8, { userId, name: userId });
+    setSubmitted(true);
+    await analyze(name.trim(), mood.trim());
+  }, [name, mood, emitNewName, emitNewVoice, analyze, socket]);
+
+  const handleReset = useCallback(() => {
+    setSubmitted(false);
+    reset();
+    setName("");
+    setMood("");
+    setShowPress(false);
+    setShowResetDelayed(false);
+    // 전체 리로드로 초기 상태 복귀
+    try { window.location.reload(); } catch {}
+  }, [reset]);
+
+  const containerStyle = appContainer(isModal);
+  const wrapperStyle = contentWrapper(isModal);
+
+  return (
+    <div style={containerStyle}>
+      <div style={wrapperStyle}>
+        {!submitted && !isListening && (
+          <>
+            <HeroText isModal={isModal} onFinalPhase={() => setShowPress(true)} />
+            {weatherGreeting && (
+              <div style={{ display: 'none' }}>
+                <p>{weatherGreeting.fullGreeting}</p>
+              </div>
+            )}
+            <p style={{ display: 'none' }}>
+              이름과 기분을 입력해주세요
+            </p>
+          </>
+        )}
+
+        {!submitted ? (
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+            <HiddenForm
+              name={name}
+              onNameChange={setName}
+              mood={mood}
+              onMoodChange={setMood}
+            />
+            {showPress && !isListening && (
+              <PressOverlay
+                pressProgress={pressProgress}
+                onPressStart={handlePressStart}
+                onPressEnd={handlePressEnd}
+              />
+            )}
+            {(isListening || listeningStage === 'finalHold' || listeningStage === 'fadeOut') && (
+              <ListeningOverlay
+                topLabel="듣고 있어요"
+                centerText={(listeningStage === 'finalHold' && mood) ? `“${mood}”` : (liveTranscript ? `“${liveTranscript}”` : undefined)}
+                stage={listeningStage === 'fadeOut' ? 'fadeOut' : 'live'}
+              />
+            )}
+          </form>
+        ) : (loading || orchestratingLock) ? (
+          <>
+            <OrchestratingScreen />
+          </>
+        ) : recommendations ? (
+          <>
+            <div style={{
+              position: 'fixed',
+              bottom: '22vh',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(255,255,255,0.82)',
+              color: '#222',
+              padding: '16px 20px',
+              borderRadius: '16px',
+              boxShadow: '0 10px 28px rgba(0,0,0,0.18)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              zIndex: 2000,
+              minWidth: '240px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontWeight: 700 }}>온도: {recommendations.temperature}℃</div>
+              <div style={{ fontWeight: 700 }}>습도: {recommendations.humidity}%</div>
+              <div style={{ fontWeight: 700 }}>조명 색상: {recommendations.lightColor}</div>
+              <div style={{ fontWeight: 700 }}>음악: {recommendations.song}</div>
+            </div>
+            {showResetDelayed && (
+              <div style={{
+                position: 'fixed',
+                bottom: '12vh',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 2600
+              }}>
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  style={{
+                    padding: '0.85rem 2.6rem',
+                    borderRadius: 999,
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '1rem',
+                    color: '#fff',
+                    background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
+                    boxShadow: '0 12px 30px rgba(147, 51, 234, 0.35)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  다시 대화하기
+                </button>
+              </div>
+            )}
+          </>
+        ) : null}
+      </div>
+      <BlobControls />
+    </div>
+  );
+}
+<<<<<<< HEAD
+import { useState, useEffect, useCallback, useRef } from "react";
+=======
+import Image from "next/image";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import styled from "styled-components";
+>>>>>>> a602ee2 (Mobile results UX: pause blobs, delayed reset; reload on reset; policy+prompt integration fixes)
+import { useRouter } from "next/router";
+import useSocketMobile from "@/utils/hooks/useSocketMobile";
+import useOpenAIAnalysis from "@/utils/hooks/useOpenAIAnalysis";
 import LoadingScreen from "./sections/LoadingScreen";
 import OrchestratingScreen from "./sections/OrchestratingScreen";
 import HeroText from "./sections/HeroText";
@@ -15,12 +236,54 @@ import useTypewriter from "./hooks/useTypewriter";
 import { fonts, spacing } from "./styles/tokens";
 import { appContainer, contentWrapper } from "./modules/shared/layout";
 import ListeningOverlay from "./sections/ListeningOverlay";
+<<<<<<< HEAD
+=======
+import ReasonPanel from './views/ReasonPanel';
+import InputForm from './views/InputForm';
+import { fonts } from "./sections/styles/tokens";
+
+import BackgroundCanvas from '@/components/mobile/BackgroundCanvas';
+import { MUSIC_CATALOG } from "@/utils/data/musicCatalog";
+>>>>>>> a602ee2 (Mobile results UX: pause blobs, delayed reset; reload on reset; policy+prompt integration fixes)
 
 export default function MobileControls() {
   const router = useRouter();
   const isModal = router?.query?.variant === 'modal';
+<<<<<<< HEAD
   const { emitNewName, emitNewVoice, socket } = useSocketMobile();
   const { loading, recommendations, analyze, reset } = useOpenAIAnalysis(socket);
+=======
+  const [loading, setLoading] = useState(false);
+  const [recommendations, setRecommendations] = useState(null);
+  const [showResetDelayed, setShowResetDelayed] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const { emitNewName, emitNewVoice, socket } = useSocketMobile({
+    onMobileDecision: (payload) => {
+      // payload: { userId, params: { temp, humidity, lightColor, music }, reason }
+      const rec = {
+        temperature: payload?.params?.temp,
+        humidity: payload?.params?.humidity,
+        lightColor: payload?.params?.lightColor,
+        song: payload?.params?.music,
+        windLevel: payload?.params?.windLevel,
+        purifierOn: payload?.params?.purifierOn,
+        purifierMode: payload?.params?.purifierMode,
+        reason: payload?.reason,
+        emotionKeyword: payload?.emotionKeyword,
+        flags: payload?.flags
+      };
+      setRecommendations(rec);
+      if (payload?.flags?.abusive) {
+        setNotice('정중한 표현으로 다시 말씀해 주세요.');
+        setTimeout(() => setNotice(null), 2500);
+      } else if (payload?.flags?.offTopic) {
+        setNotice('새로운 대답이네요! 적절한 값을 추천했어요.');
+        setTimeout(() => setNotice(null), 2000);
+      }
+      setLoading(false);
+    }
+  });
+>>>>>>> a602ee2 (Mobile results UX: pause blobs, delayed reset; reload on reset; policy+prompt integration fixes)
   const [name, setName] = useState("");
   const [mood, setMood] = useState("");
   const [liveTranscript, setLiveTranscript] = useState("");
@@ -222,6 +485,19 @@ export default function MobileControls() {
     }
   }, [typedReason, fullTypedText, orbShowcaseStarted, recommendations]);
 
+  // When the showcase flips to results stage, pause blobs and start delayed reset button
+  useEffect(() => {
+    if (localShowResults && recommendations && !loading && !orchestratingLock) {
+      if (typeof window !== 'undefined') {
+        window.orbitPaused = true;
+        window.blobOpacityMs = 900;
+      }
+      setShowResetDelayed(false);
+      const t = setTimeout(() => setShowResetDelayed(true), 3000);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [localShowResults, recommendations, loading, orchestratingLock]);
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!name.trim() || !mood.trim()) {
@@ -249,6 +525,7 @@ export default function MobileControls() {
 
   const handleReset = useCallback(() => {
     setSubmitted(false);
+<<<<<<< HEAD
     reset();
     setName("");
     setMood("");
@@ -260,9 +537,23 @@ export default function MobileControls() {
     setFadeText(false);
     setLocalShowResults(false);
     setOrbShowcaseStarted(false);
+=======
+    setRecommendations(null);
+    setLoading(false);
+    setShowResetDelayed(false);
+    setName("");
+    setMood("");
+    setShowPress(false);
+    resetShowcase();
+>>>>>>> a602ee2 (Mobile results UX: pause blobs, delayed reset; reload on reset; policy+prompt integration fixes)
     if (typeof window !== 'undefined') {
       window.showFinalOrb = false;
       window.showCenterGlow = false;
+      window.orbitPaused = false;
+      // 완전 새로 시작: 화면 리로드
+      setTimeout(() => {
+        try { window.location.reload(); } catch {}
+      }, 0);
     }
   }, [reset]);
 
@@ -333,6 +624,7 @@ export default function MobileControls() {
           <>
             <OrchestratingScreen />
           </>
+<<<<<<< HEAD
         ) : recommendations && localShowResults ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* 추천 결과 표시 */}
@@ -652,7 +944,129 @@ export default function MobileControls() {
         )}
         {/* Note: moved keyframe animations to globals.css to avoid JSX parsing issues */}
       </div>
+=======
+        ) : recommendations && showReason ? (
+          <ReasonPanel
+            typedReason={typedReason}
+            fullTypedText={fullTypedText}
+            paragraphs={paragraphs}
+            showHighlights={showHighlights}
+            fadeText={fadeText}
+          />
+        ) : (recommendations && localShowResults && !loading && !orchestratingLock) ? (
+          <>
+            <ResultsWrap>
+              <ResultRow>온도: {recommendations.temperature}℃</ResultRow>
+              <ResultRow>습도: {recommendations.humidity}%</ResultRow>
+              <ResultRow>조명 색상: {recommendations.lightColor}</ResultRow>
+              <ResultRow>
+                음악: {useMemo(() => {
+                  const found = MUSIC_CATALOG.find(t => t.id === recommendations.song);
+                  return found ? `${found.title} - ${found.artist}` : recommendations.song;
+                }, [recommendations?.song])}
+              </ResultRow>
+            </ResultsWrap>
+            {showResetDelayed && (
+              <ResetButtonWrap>
+                <ResetButton type="button" onClick={handleReset}>
+                  다시 대화하기
+                </ResetButton>
+              </ResetButtonWrap>
+            )}
+          </>
+        ) : null}
+        {/* Note: moved keyframe animations to globals.css to avoid JSX parsing issues */}
+      </ContentWrapper>
+      {showResetDelayed && (
+        <ResetButtonWrap>
+          <ResetButton type="button" onClick={handleReset}>
+            다시 대화하기
+          </ResetButton>
+        </ResetButtonWrap>
+      )}
+>>>>>>> a602ee2 (Mobile results UX: pause blobs, delayed reset; reload on reset; policy+prompt integration fixes)
       <BlobControls />
     </div>
   );
 }
+<<<<<<< HEAD
+=======
+
+const ResetButtonWrap = styled.div`
+  position: fixed;
+  bottom: clamp(32px, 12vh, 80px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2600;
+  pointer-events: auto;
+`;
+
+const ResetButton = styled.button`
+  padding: 0.85rem 2.6rem;
+  border-radius: 999px;
+  border: none;
+  font-family: ${fonts.ui};
+  font-weight: 700;
+  font-size: 1rem;
+  color: white;
+  background: linear-gradient(135deg, #9333EA 0%, #EC4899 100%);
+  box-shadow: 0 12px 30px rgba(147, 51, 234, 0.35);
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+
+  &:active {
+    transform: translateY(2px);
+    box-shadow: 0 6px 18px rgba(147, 51, 234, 0.25);
+  }
+`;
+
+const BrandLogoWrap = styled.div`
+  position: fixed;
+  top: clamp(20px, 6vh, 44px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: clamp(16px, 5vw, 24px);
+  height: clamp(16px, 5vw, 24px);
+  z-index: 2200;
+  pointer-events: none;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+`;
+
+const ResultsWrap = styled.div`
+  position: fixed;
+  bottom: clamp(120px, 22vh, 240px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.82);
+  color: #222;
+  padding: 16px 20px;
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 2000;
+`;
+
+const ResultRow = styled.div`
+  font-size: 14px;
+  font-weight: 600;
+`;
+
+const Notice = styled.div`
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  z-index: 2300;
+`;
+>>>>>>> a602ee2 (Mobile results UX: pause blobs, delayed reset; reload on reset; policy+prompt integration fixes)
