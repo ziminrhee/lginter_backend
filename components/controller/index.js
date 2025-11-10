@@ -296,7 +296,7 @@ export default function ControllerView() {
           <ScreenGroup>
             <ScreenGroupLabel>현관3</ScreenGroupLabel>
             <ScreenDeviceGrid>
-              {['mw1', 'tv1', 'sbm1'].map((id) => {
+              {['mw1', 'mv2', 'tv1', 'sbm1'].map((id) => {
                 const status = getDeviceStatus(id);
                 return (
                   <DeviceChip key={id} $status={status}>
