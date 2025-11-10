@@ -49,7 +49,7 @@ export default function SW1Controls() {
     <S.Root $backgroundUrl={BACKGROUND_URL}>
       <S.MotionProps />
       <S.TopStatus>
-        <span>가족 구성원 0 명을 위한 조율중</span>
+        <span>가족 구성원 4 명을 위한 조율중</span>
         <S.Dots aria-hidden="true">
           <S.Dot $visible={dotCount >= 1}>.</S.Dot>
           <S.Dot $visible={dotCount >= 2}>.</S.Dot>
@@ -58,6 +58,20 @@ export default function SW1Controls() {
       </S.TopStatus>
       <S.Stage>
         <S.GradientEllipse />
+        <S.SectionGrid>
+          <S.SectionCell>
+            <S.BlobA />
+          </S.SectionCell>
+          <S.SectionCell>
+            <S.BlobB />
+          </S.SectionCell>
+          <S.SectionCell>
+            <S.BlobC />
+          </S.SectionCell>
+          <S.SectionCell>
+            <S.BlobD />
+          </S.SectionCell>
+        </S.SectionGrid>
         <S.EllipseLayer>
           <S.Ellipse $ellipseUrl={ELLIPSE_URL} />
         </S.EllipseLayer>

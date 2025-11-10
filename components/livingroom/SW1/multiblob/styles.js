@@ -45,6 +45,11 @@ export const Root = styled.div`
   background-size: contain;
   font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   overflow: hidden;
+  /* Design basis: 3840 x 1660 (LG Swing) */
+  --sx: calc(100vw / 3840);
+  --sy: calc(100vh / 1660);
+  /* Central base ellipse is ~2552px ⇒ 50% cap ≈ 1276px */
+  --baseMax: min(calc(var(--sx) * 1276px), calc(var(--sy) * 1276px));
 `;
 
 export const TopStatus = styled.div`
@@ -56,7 +61,7 @@ export const TopStatus = styled.div`
   font-weight: 600;
   letter-spacing: -0.2px;
   text-align: center;
-  font-size: clamp(25px, 3.6vmin, 43px);
+  font-size: clamp(28px, 3.96vmin, 47px);
   text-shadow: 0 2px 12px rgba(0,0,0,0.08);
   pointer-events: none;
   z-index: 10;
@@ -191,71 +196,103 @@ export const Dot = styled.span`
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
 `;
 
-/* Floating blobs (4) */
-const float1 = keyframes`
-  0%   { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
-  50%  { transform: translate(-50%, -50%) translate(2vmin, -1.5vmin) scale(1.04); }
-  100% { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
+/* 4-way sectioning relative to centered text */
+export const SectionGrid = styled.div`
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  z-index: 2; /* behind centered text (z=5), above bg ellipse */
+  pointer-events: none;
 `;
 
-const float2 = keyframes`
-  0%   { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
-  50%  { transform: translate(-50%, -50%) translate(-2.2vmin, 1.8vmin) scale(1.05); }
-  100% { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
+export const SectionCell = styled.div`
+  position: relative;
+  overflow: hidden; /* softly clips blur near edges to 'hint' crossing */
 `;
 
-const float3 = keyframes`
-  0%   { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
-  50%  { transform: translate(-50%, -50%) translate(1.6vmin, 2.2vmin) scale(1.03); }
-  100% { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
-`;
-
-const float4 = keyframes`
-  0%   { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
-  50%  { transform: translate(-50%, -50%) translate(-1.8vmin, -2vmin) scale(1.05); }
-  100% { transform: translate(-50%, -50%) translate(0vmin, 0vmin) scale(1); }
-`;
-
-const FloatingBlob = styled.div`
+/* Shared blob base */
+const SectionBlob = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 18vmin;
-  height: 18vmin;
+  transform: translate(-50%, -50%) rotate(var(--rot));
+  width: var(--size);
+  height: var(--size);
   border-radius: 50%;
+  filter: blur(43.4px);
+  opacity: 0.95;
   pointer-events: none;
-  z-index: 2;
-  will-change: transform, filter, opacity;
-  filter: blur(14px) saturate(1.05) brightness(1.04);
-  opacity: 0.9;
+  will-change: transform;
 `;
 
-export const FloatingBlob1 = styled(FloatingBlob)`
-  top: 22vh;
-  left: 24vw;
-  background: radial-gradient(closest-side, rgba(255, 193, 186, 0.95) 0%, rgba(255, 193, 186, 0.55) 45%, rgba(255, 193, 186, 0) 70%);
-  animation: ${float1} 9.5s ease-in-out infinite alternate;
+/* Scale between 25% and 100% of own max (min = 25% of largest rule satisfied) */
+const scalePulse = keyframes`
+  0%   { transform: translate(-50%, -50%) rotate(var(--rot)) scale(0.25); }
+  50%  { transform: translate(-50%, -50%) rotate(var(--rot)) scale(1); }
+  100% { transform: translate(-50%, -50%) rotate(var(--rot)) scale(0.25); }
 `;
 
-export const FloatingBlob2 = styled(FloatingBlob)`
-  top: 30vh;
-  left: 78vw;
-  background: radial-gradient(closest-side, rgba(251, 178, 211, 0.95) 0%, rgba(251, 178, 211, 0.55) 45%, rgba(251, 178, 211, 0) 70%);
-  animation: ${float2} 10.5s ease-in-out infinite alternate;
+/* Gentle drift within cell - distinct paths per quadrant */
+const driftA = keyframes`
+  0%   { transform: translate(-50%, -50%) rotate(var(--rot)) translate(-8%, -6%) scale(var(--k,1)); }
+  50%  { transform: translate(-50%, -50%) rotate(var(--rot)) translate( 8%,  6%) scale(var(--k,1)); }
+  100% { transform: translate(-50%, -50%) rotate(var(--rot)) translate(-8%, -6%) scale(var(--k,1)); }
+`;
+const driftB = keyframes`
+  0%   { transform: translate(-50%, -50%) rotate(var(--rot)) translate( 7%, -7%) scale(var(--k,1)); }
+  50%  { transform: translate(-50%, -50%) rotate(var(--rot)) translate(-7%,  7%) scale(var(--k,1)); }
+  100% { transform: translate(-50%, -50%) rotate(var(--rot)) translate( 7%, -7%) scale(var(--k,1)); }
+`;
+const driftC = keyframes`
+  0%   { transform: translate(-50%, -50%) rotate(var(--rot)) translate( 6%,  8%) scale(var(--k,1)); }
+  50%  { transform: translate(-50%, -50%) rotate(var(--rot)) translate(-6%, -8%) scale(var(--k,1)); }
+  100% { transform: translate(-50%, -50%) rotate(var(--rot)) translate( 6%,  8%) scale(var(--k,1)); }
+`;
+const driftD = keyframes`
+  0%   { transform: translate(-50%, -50%) rotate(var(--rot)) translate(-9%,  5%) scale(var(--k,1)); }
+  50%  { transform: translate(-50%, -50%) rotate(var(--rot)) translate( 9%, -5%) scale(var(--k,1)); }
+  100% { transform: translate(-50%, -50%) rotate(var(--rot)) translate(-9%,  5%) scale(var(--k,1)); }
 `;
 
-export const FloatingBlob3 = styled(FloatingBlob)`
-  top: 72vh;
-  left: 72vw;
-  background: radial-gradient(closest-side, rgba(221, 219, 221, 0.95) 0%, rgba(221, 219, 221, 0.55) 45%, rgba(221, 219, 221, 0) 70%);
-  animation: ${float3} 11.5s ease-in-out infinite alternate;
+/* a: top-left */
+export const BlobA = styled(SectionBlob)`
+  --rot: -56.03deg;
+  --size: calc(var(--baseMax) * 0.48); /* < 50% of base */
+  background: linear-gradient(180deg, rgba(255, 173, 213, 0.48) 0%, rgba(249, 207, 180, 0.48) 60.58%);
+  animation:
+    ${scalePulse} 7s ease-in-out infinite alternate,
+    ${driftA} 10s ease-in-out infinite alternate;
 `;
 
-export const FloatingBlob4 = styled(FloatingBlob)`
-  top: 76vh;
-  left: 18vw;
-  background: radial-gradient(closest-side, rgba(255, 201, 227, 0.95) 0%, rgba(255, 201, 227, 0.55) 45%, rgba(255, 201, 227, 0) 70%);
-  animation: ${float4} 12.5s ease-in-out infinite alternate;
+/* b: top-right */
+export const BlobB = styled(SectionBlob)`
+  --rot: 75deg;
+  --size: calc(var(--baseMax) * 0.42);
+  background: linear-gradient(180deg, rgba(255, 138, 182, 0.48) 0%, rgba(221, 233, 227, 0.48) 67.89%);
+  animation:
+    ${scalePulse} 7.5s ease-in-out infinite alternate,
+    ${driftB} 11s ease-in-out infinite alternate;
+`;
+
+/* c: bottom-left */
+export const BlobC = styled(SectionBlob)`
+  --rot: 30deg;
+  --size: calc(var(--baseMax) * 0.35);
+  background: linear-gradient(180deg, rgba(249, 206, 180, 0.72) 6.25%, rgba(221, 233, 227, 0.72) 38.5%);
+  animation:
+    ${scalePulse} 8s ease-in-out infinite alternate,
+    ${driftC} 12s ease-in-out infinite alternate;
+`;
+
+/* d: bottom-right */
+export const BlobD = styled(SectionBlob)`
+  --rot: 45deg;
+  --size: calc(var(--baseMax) * 0.28);
+  background: linear-gradient(180deg, rgba(255, 173, 213, 0.61) 0%, rgba(249, 207, 180, 0.61) 60.58%);
+  animation:
+    ${scalePulse} 8.5s ease-in-out infinite alternate,
+    ${driftD} 12.5s ease-in-out infinite alternate;
 `;
 
