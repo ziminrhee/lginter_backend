@@ -53,6 +53,7 @@ export default function handler(req, res) {
 
     // Device-specific init → map to rooms (keep event names)
     socket.on("mw1-init", () => socket.join("entrance"));
+    socket.on("mv2-init", () => socket.join("entrance"));
     socket.on("sbm1-init", () => socket.join("entrance"));
     socket.on("tv1-init", () => socket.join("entrance"));
     socket.on("sw1-init", () => socket.join("livingroom"));
@@ -116,8 +117,15 @@ export default function handler(req, res) {
       io.to("livingroom").emit("device-new-decision", { target: 'tv2', env: tv2Env, reason: payload.reason, decisionId, mergedFrom: [payload.userId] });
       io.to("livingroom").emit("device-new-decision", { target: 'sw1', env: sw1Env, decisionId });
       io.to("livingroom").emit("device-new-decision", { target: 'sw2', env: sw2Env, decisionId });
-      // targeted to mobile user
-      io.to(`user:${payload.userId}`).emit("mobile-new-decision", { userId: payload.userId, params: payload.params, reason: payload.reason, decisionId });
+      // targeted to mobile user (include flags/emotionKeyword when present)
+      io.to(`user:${payload.userId}`).emit("mobile-new-decision", {
+        userId: payload.userId,
+        params: payload.params,
+        reason: payload.reason,
+        flags: payload.flags,
+        emotionKeyword: payload.emotionKeyword,
+        decisionId
+      });
       // optional legacy alias (default off)
       const legacy = process.env.LEGACY_DEVICE_DECISION_ALIAS === 'true';
       if (legacy) {

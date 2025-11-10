@@ -8,7 +8,6 @@ export default function MW1Controls() {
   const [isVisible, setIsVisible] = useState(false);
 
   const handlers = useMemo(() => createSocketHandlers({ setWelcomeData, setIsVisible }), [setWelcomeData, setIsVisible]);
-
   const { socket } = useSocketMW1({ onEntranceNewVoice: handlers.onEntranceNewVoice });
 
   return (

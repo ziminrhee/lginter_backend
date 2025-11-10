@@ -1,11 +1,11 @@
 import { decideEnv } from '@/src/services/openai.service';
-import { DEFAULT_ENV, normalizeEnv } from './stateStore';
-
-const SYSTEM_PROMPT = 'Decide home environment based on latest user input.';
+import { DEFAULT_ENV } from './stateStore';
+import { normalizeEnv } from './logic/controllerMerge';
+import { CONTROLLER_SYSTEM_PROMPT } from '@/utils/prompts/controller.prompt';
 
 export async function requestControllerDecision({ userId, userContext, lastDecision }) {
   const result = await decideEnv({
-    systemPrompt: SYSTEM_PROMPT,
+    systemPrompt: CONTROLLER_SYSTEM_PROMPT,
     latestConversation: [],
     currentProgram: {
       version: lastDecision?.version || 0,
@@ -20,8 +20,14 @@ export async function requestControllerDecision({ userId, userContext, lastDecis
   });
 
   return {
-    env: normalizeEnv(result?.params),
+    env: normalizeEnv(
+      result?.params,
+      userContext?.lastVoice?.emotion || '',
+      { season: 'winter' }
+    ),
     reason: result?.reason || 'AI generated',
+    flags: result?.flags || { offTopic: false, abusive: false },
+    emotionKeyword: result?.emotionKeyword || '',
   };
 }
 
