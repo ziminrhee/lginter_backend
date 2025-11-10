@@ -1,10 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
-import { DEFAULT_ENV, createControllerState, ensureUser, updateUserName, updateUserVoice, updateUserDecision, persistPreference, getActivePreferences, applyAggregatedEnv, updateDeviceHeartbeatState, resetUsers } from '../stateStore';
-import { requestControllerDecision } from '../logic/openaiEngine';
-import { computeFairAverage } from '../logic/aggregators';
-import { buildSnapshot, getDeviceStatus as computeDeviceStatus } from '../logic/selectors';
+import { DEFAULT_ENV, createControllerState, ensureUser, updateUserName, updateUserVoice, updateUserDecision, persistPreference, getActivePreferences, applyAggregatedEnv, updateDeviceHeartbeatState, resetUsers, buildSnapshot } from '../stateStore';
+import { requestControllerDecision } from '../openaiEngine';
+import { computeFairAverage } from '../logic/controllerMerge';
 
 const DECISION_DEBOUNCE_MS = 500;
+const HEARTBEAT_TIMEOUT = 30 * 1000;
 
 export default function useControllerOrchestrator({ emit }) {
   const controllerStateRef = useRef(createControllerState());
@@ -164,7 +164,10 @@ export default function useControllerOrchestrator({ emit }) {
   }, [emit, publishSnapshot]);
 
   const getDeviceStatus = useCallback((deviceId) => {
-    return computeDeviceStatus(snapshot?.deviceState || {}, deviceId, Date.now());
+    const dev = (snapshot?.deviceState || {})[deviceId?.toLowerCase()];
+    if (!dev) return 'error';
+    const now = Date.now();
+    return dev.lastHeartbeatTs && now - dev.lastHeartbeatTs < HEARTBEAT_TIMEOUT ? 'ok' : 'error';
   }, [snapshot?.deviceState]);
 
   return {

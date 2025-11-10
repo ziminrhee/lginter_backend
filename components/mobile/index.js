@@ -19,7 +19,6 @@ import InputForm from './views/InputForm';
 import { fonts } from "./sections/styles/tokens";
 
 import BackgroundCanvas from '@/components/mobile/BackgroundCanvas';
-import brandLogo from "@/components/furon_logo.png";
 
 export default function MobileControls() {
   const router = useRouter();
@@ -174,7 +173,7 @@ export default function MobileControls() {
     <AppContainer $isModal={isModal}>
       {showBrandLogo && (
         <BrandLogoWrap>
-          <Image src={brandLogo} alt="Furon" priority />
+          <Image src="/brand/furon_logo.png" alt="Furon" priority width={24} height={24} />
         </BrandLogoWrap>
       )}
       <BackgroundCanvas
