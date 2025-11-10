@@ -1,11 +1,11 @@
 import dynamic from "next/dynamic";
 
-const MV2Display = dynamic(() => import("@/components/entrance/MV2"), {
+const MW2Display = dynamic(() => import("@/components/entrance/MW2"), {
   ssr: false,
 });
 
-export default function MV2Page() {
-  return <MV2Display />;
+export default function MW2Page() {
+  return <MW2Display />;
 }
 
 

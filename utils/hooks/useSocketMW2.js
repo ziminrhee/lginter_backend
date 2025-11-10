@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { SOCKET_CONFIG } from "../constants";
 
-export default function useSocketMV2(options = {}) {
+export default function useSocketMW2(options = {}) {
   const socketRef = useRef(null);
   const [socket, setSocket] = useState(null);
 
@@ -17,7 +17,7 @@ export default function useSocketMV2(options = {}) {
       }
       if (!mounted) return;
 
-      console.log("MV2 Hook: Initializing socket connection...");
+      console.log("MW2 Hook: Initializing socket connection...");
 
       const s = io({ path: SOCKET_CONFIG.PATH });
 
@@ -25,24 +25,24 @@ export default function useSocketMV2(options = {}) {
       setSocket(s);
 
       s.on("connect", () => {
-        console.log("✅ MV2 socket connected:", s.id);
-        s.emit("mv2-init");
+        console.log("✅ MW2 socket connected:", s.id);
+        s.emit("mw2-init");
         s.emit("device:heartbeat", {
           deviceId: s.id,
-          type: "mv2",
+          type: "mw2",
           version: "1.0.0",
           ts: Date.now(),
         });
       });
 
       s.on("disconnect", () => {
-        console.log("❌ MV2 socket disconnected");
+        console.log("❌ MW2 socket disconnected");
       });
 
       s.on("device:ping", () => {
         s.emit("device:heartbeat", {
           deviceId: s.id,
-          type: "mv2",
+          type: "mw2",
           version: "1.0.0",
           ts: Date.now(),
         });
@@ -56,7 +56,7 @@ export default function useSocketMV2(options = {}) {
         if (s.connected) {
           s.emit("device:heartbeat", {
             deviceId: s.id,
-            type: "mv2",
+            type: "mw2",
             version: "1.0.0",
             ts: Date.now(),
           });
@@ -67,7 +67,7 @@ export default function useSocketMV2(options = {}) {
 
     return () => {
       mounted = false;
-      console.log("MV2 Hook: Cleaning up socket");
+      console.log("MW2 Hook: Cleaning up socket");
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;

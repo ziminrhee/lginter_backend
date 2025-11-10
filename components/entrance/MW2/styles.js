@@ -11,7 +11,7 @@ export const Container = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top left, #3c3b5c, #0e0d16 65%);
+  background: #ffffff;
   color: #f5f5f5;
   overflow: hidden;
   font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
@@ -83,5 +83,6 @@ export const MarqueeInner = styled.div`
     white-space: nowrap;
   }
 `;
+
 
 

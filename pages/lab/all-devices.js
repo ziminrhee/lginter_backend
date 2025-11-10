@@ -2,7 +2,7 @@ const devices = [
   { title: "Entrance / MW1", src: "/entrance/mw1" },
   { title: "Entrance / SBM1", src: "/entrance/sbm1" },
   { title: "Entrance / TV1", src: "/entrance/tv1" },
-  { title: "Entrance / MV2", src: "/entrance/mv2" },
+  { title: "Entrance / MW2", src: "/entrance/mv2" },
   { title: "LivingRoom / SW1", src: "/livingroom/sw1" },
   { title: "LivingRoom / SW2", src: "/livingroom/sw2" },
   { title: "LivingRoom / TV2", src: "/livingroom/tv2" },

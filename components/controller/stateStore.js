@@ -1,4 +1,4 @@
-const DEVICE_IDS = ['tv2', 'sw1', 'sw2', 'mw1', 'mv2', 'sbm1', 'tv1'];
+const DEVICE_IDS = ['tv2', 'sw1', 'sw2', 'mw1', 'mw2', 'sbm1', 'tv1'];
 
 export const DEFAULT_ENV = { temp: 24, humidity: 50, lightColor: '#FFFFFF', music: 'ambient' };
 export const ACTIVE_INPUT_TTL = 5 * 60 * 1000; // 5 minutes

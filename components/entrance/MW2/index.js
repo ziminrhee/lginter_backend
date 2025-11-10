@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import useSocketMV2 from "@/utils/hooks/useSocketMV2";
+import useSocketMW2 from "@/utils/hooks/useSocketMW2";
 import * as S from "./styles";
 import { createSocketHandlers } from "./logic";
 
-export default function MV2Display() {
+export default function MW2Display() {
   const [messageState, setMessageState] = useState(null);
   const [isActive, setIsActive] = useState(false);
 
@@ -16,7 +16,7 @@ export default function MV2Display() {
     []
   );
 
-  useSocketMV2({ onEntranceNewVoice: handlers.onEntranceNewVoice });
+  useSocketMW2({ onEntranceNewVoice: handlers.onEntranceNewVoice });
 
   return (
     <S.Container>
@@ -24,7 +24,7 @@ export default function MV2Display() {
       <S.Content>
         {!isActive && (
           <S.DefaultMessage>
-            <span>MV2</span>
+            <span>MW2</span>
             <small>감정 기반 공간 연출 대기 중...</small>
           </S.DefaultMessage>
         )}
