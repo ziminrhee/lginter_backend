@@ -58,20 +58,28 @@ export default function SW1Controls() {
       </S.TopStatus>
       <S.Stage>
         <S.GradientEllipse />
-        <S.SectionGrid>
-          <S.SectionCell>
-            <S.BlobA />
-          </S.SectionCell>
-          <S.SectionCell>
-            <S.BlobB />
-          </S.SectionCell>
-          <S.SectionCell>
-            <S.BlobC />
-          </S.SectionCell>
-          <S.SectionCell>
-            <S.BlobD />
-          </S.SectionCell>
-        </S.SectionGrid>
+        <S.SmallBlobsLayer>
+          <S.SmallBlobA>
+            <S.SmallBlobLabel>
+              22℃<br/>강력 제습
+            </S.SmallBlobLabel>
+          </S.SmallBlobA>
+          <S.SmallBlobB>
+            <S.SmallBlobLabel>
+              24℃<br/>적정 제습
+            </S.SmallBlobLabel>
+          </S.SmallBlobB>
+          <S.SmallBlobC>
+            <S.SmallBlobLabel>
+              20℃<br/>적정 제습
+            </S.SmallBlobLabel>
+          </S.SmallBlobC>
+          <S.SmallBlobD>
+            <S.SmallBlobLabel>
+              21℃<br/>강력 제습
+            </S.SmallBlobLabel>
+          </S.SmallBlobD>
+        </S.SmallBlobsLayer>
         <S.EllipseLayer>
           <S.Ellipse $ellipseUrl={ELLIPSE_URL} />
         </S.EllipseLayer>

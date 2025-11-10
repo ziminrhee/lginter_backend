@@ -45,11 +45,8 @@ export const Root = styled.div`
   background-size: contain;
   font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   overflow: hidden;
-  /* Design basis: 3840 x 1660 (LG Swing) */
-  --sx: calc(100vw / 3840);
-  --sy: calc(100vh / 1660);
-  /* Central base ellipse is ~2552px ⇒ 50% cap ≈ 1276px */
-  --baseMax: min(calc(var(--sx) * 1276px), calc(var(--sy) * 1276px));
+  /* radius from center to place small blob centers (kept inside viewport) */
+  --R: 34vmin;
 `;
 
 export const TopStatus = styled.div`
@@ -194,6 +191,117 @@ export const Dots = styled.span`
 export const Dot = styled.span`
   transition: opacity 120ms linear;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+`;
+
+/* Small peripheral blobs (no motion) */
+export const SmallBlobsLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2; /* above bg ellipse, below center text (z=5) */
+`;
+
+/* subtle float keyframes per blob (no rotation so labels stay upright) */
+const floatA = keyframes`
+  0%   { transform: translate(-50%, -50%) translate(0%, 0%); }
+  50%  { transform: translate(-50%, -50%) translate(8%, -6%); }
+  100% { transform: translate(-50%, -50%) translate(0%, 0%); }
+`;
+const floatB = keyframes`
+  0%   { transform: translate(-50%, -50%) translate(0%, 0%); }
+  50%  { transform: translate(-50%, -50%) translate(-8%, 6%); }
+  100% { transform: translate(-50%, -50%) translate(0%, 0%); }
+`;
+const floatC = keyframes`
+  0%   { transform: translate(-50%, -50%) translate(0%, 0%); }
+  50%  { transform: translate(-50%, -50%) translate(6%, 8%); }
+  100% { transform: translate(-50%, -50%) translate(0%, 0%); }
+`;
+const floatD = keyframes`
+  0%   { transform: translate(-50%, -50%) translate(0%, 0%); }
+  50%  { transform: translate(-50%, -50%) translate(-6%, -8%); }
+  100% { transform: translate(-50%, -50%) translate(0%, 0%); }
+`;
+
+const SmallBlobBase = styled.div`
+  position: absolute;
+  top: var(--top);
+  left: var(--left);
+  /* translate only; rotation applied to background pseudo so text stays upright */
+  transform: translate(-50%, -50%);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  position: absolute;
+  /* background drawn on ::before so text is not blurred */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--bg);
+    filter: blur(43.4px);
+    transform: rotate(var(--rot, 0deg));
+    opacity: 0.9;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35);
+  }
+`;
+
+/* a: top-left */
+export const SmallBlobA = styled(SmallBlobBase)`
+  --rot: -56.03deg;
+  --top: 24%;
+  --left: 22%;
+  /* +35% larger from previous */
+  --size: clamp(445px, 44.55vmin, 1053px);
+  --bg: linear-gradient(180deg, rgba(255, 173, 213, 0.48) 0%, rgba(249, 207, 180, 0.48) 60.58%);
+  animation: ${floatA} 18s ease-in-out infinite;
+`;
+
+/* b: top-right */
+export const SmallBlobB = styled(SmallBlobBase)`
+  --rot: 75deg;
+  --top: 24%;
+  --left: 78%;
+  --size: clamp(445px, 48.6vmin, 1134px);
+  --bg: linear-gradient(180deg, rgba(255, 138, 182, 0.48) 0%, rgba(221, 233, 227, 0.48) 67.89%);
+  animation: ${floatB} 20s ease-in-out infinite;
+`;
+
+/* c: bottom-left */
+export const SmallBlobC = styled(SmallBlobBase)`
+  --rot: 30deg;
+  --top: 72%;
+  --left: 30%;
+  --size: clamp(445px, 46.575vmin, 1093.5px);
+  --bg: linear-gradient(180deg, rgba(249, 206, 180, 0.72) 6.25%, rgba(221, 233, 227, 0.72) 38.5%);
+  animation: ${floatC} 20s ease-in-out infinite;
+`;
+
+/* d: bottom-right */
+export const SmallBlobD = styled(SmallBlobBase)`
+  --rot: 45deg;
+  --top: 72%;
+  --left: 74%;
+  --size: clamp(445px, 52.65vmin, 1215px);
+  --bg: linear-gradient(180deg, rgba(255, 173, 213, 0.61) 0%, rgba(249, 207, 180, 0.61) 60.58%);
+  animation: ${floatD} 22s ease-in-out infinite;
+`;
+
+/* labels centered inside small blobs */
+export const SmallBlobLabel = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #494343;
+  opacity: 0.7;
+  line-height: 1.2;
+  /* 30% smaller than center temp clamp(25px,4.5vmin,65px) ≈ 70% factor */
+  font-size: clamp(17px, 3.15vmin, 45px);
+  z-index: 1; /* above blurred background (::before) */
 `;
 
 /* 4-way sectioning relative to centered text */
