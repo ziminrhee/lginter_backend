@@ -47,6 +47,7 @@ export default function SW2Controls() {
 
   return (
     <S.Root>
+      <S.BlobMotionCss />
       <S.FrameBg $url="/sw2-frame.png" />
       <S.TopStatus>
         <span>가족 구성원 3 명을 위한 조율중</span>
@@ -56,6 +57,57 @@ export default function SW2Controls() {
           <S.Dot $visible={dotCount >= 3}>.</S.Dot>
         </S.Dots>
       </S.TopStatus>
+
+      {/* Motion blobs overlay (positions/sizes/colors preserved) */}
+      <S.MotionLayer>
+        <S.MotionBlobWrap $top="20%" $left="28%" $size="min(48vmin, 52vw)">
+          <S.MotionBlob
+            className="blob"
+            style={{
+              '--center-x': '50%',
+              '--center-y': '48%',
+              '--start': '18%',
+              '--end': '86%',
+              '--feather': '9%',
+              '--blur': '53.5px',
+              '--inner-blur': '26.7px',
+              '--tint-alpha': 0
+            }}
+          />
+        </S.MotionBlobWrap>
+
+        <S.MotionBlobWrap $top="74%" $left="21%" $size="min(44vmin, 46vw)">
+          <S.MotionBlob
+            className="blob"
+            style={{
+              '--center-x': '52%',
+              '--center-y': '50%',
+              '--start': '22%',
+              '--end': '78%',
+              '--feather': '8%',
+              '--blur': '44.6px',
+              '--inner-blur': '22.3px',
+              '--tint-alpha': 0
+            }}
+          />
+        </S.MotionBlobWrap>
+
+        <S.MotionBlobWrap $top="70%" $left="80%" $size="min(66vmin, 72vw)">
+          <S.MotionBlob
+            className="blob"
+            style={{
+              '--center-x': '46%',
+              '--center-y': '48%',
+              '--start': '20%',
+              '--end': '88%',
+              '--feather': '10%',
+              '--blur': '62.4px',
+              '--inner-blur': '31.2px',
+              '--tint-alpha': 0
+            }}
+          />
+        </S.MotionBlobWrap>
+      </S.MotionLayer>
 
       <S.LabelsLayer>
         <S.LabelA>설렘</S.LabelA>

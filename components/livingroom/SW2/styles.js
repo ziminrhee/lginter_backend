@@ -1,4 +1,4 @@
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, createGlobalStyle } from 'styled-components';
 
 export const Root = styled.div`
   min-height: 100vh;
@@ -79,6 +79,108 @@ export const FrameBg = styled.div`
   background-size: cover;
   opacity: 0.8;
   z-index: 0;
+`;
+
+/* === Mobile blob motion (adapted) ===================================== */
+export const BlobMotionCss = createGlobalStyle`
+  @property --orbit-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+  @property --start-wobble { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
+  @property --end-wobble { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
+  @property --feather-wobble { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
+  @property --blur-wobble { syntax: '<length>'; inherits: true; initial-value: 0px; }
+
+  @keyframes ringPulse {
+    0%, 100% {
+      --start-wobble: calc(0% - var(--start));
+      --end-wobble: 0%;
+      --feather-wobble: 0%;
+      --blur-wobble: calc(0px - var(--blur));
+    }
+    50% {
+      --start-wobble: calc(90% - var(--start));
+      --end-wobble: 0%;
+      --feather-wobble: 5%;
+      --blur-wobble: calc(120px - var(--blur));
+    }
+  }
+
+  .blob {
+    position: relative;
+    border-radius: 50%;
+    background: none;
+    isolation: isolate;
+    --start-anim: clamp(0%, calc(var(--start) + var(--start-wobble)), 90%);
+    --end-anim: clamp(0%, calc(var(--end) + var(--end-wobble)), 100%);
+    --feather-anim: clamp(0%, calc(var(--feather) + var(--feather-wobble)), 25%);
+    animation: ringPulse 6s ease-in-out infinite;
+  }
+
+  .blob::before,
+  .blob::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+
+  .blob::before {
+    /* Colorless: affect only the backdrop; add near-transparent fill to ensure rendering */
+    background: rgba(255, 255, 255, 0.001);
+    backdrop-filter: blur(var(--inner-blur));
+    -webkit-backdrop-filter: blur(var(--inner-blur));
+    -webkit-mask: radial-gradient(
+      circle at var(--center-x) var(--center-y),
+      #000 0 calc(var(--start-anim) - var(--feather-anim)),
+      transparent calc(var(--start-anim) + var(--feather-anim))
+    );
+            mask: radial-gradient(
+      circle at var(--center-x) var(--center-y),
+      #000 0 calc(var(--start-anim) - var(--feather-anim)),
+      transparent calc(var(--start-anim) + var(--feather-anim))
+    );
+  }
+
+  .blob::after {
+    /* Colorless dynamic ring using only backdrop effects; tiny fill ensures effect applies */
+    background: rgba(255, 255, 255, 0.001);
+    backdrop-filter: blur(calc(var(--blur) + var(--blur-wobble))) saturate(1.02) brightness(1.03);
+    -webkit-backdrop-filter: blur(calc(var(--blur) + var(--blur-wobble))) saturate(1.02) brightness(1.03);
+    -webkit-mask: radial-gradient(
+      circle at var(--center-x) var(--center-y),
+      transparent 0 calc(var(--start-anim) - var(--feather-anim)),
+      #000 var(--start-anim) var(--end-anim),
+      transparent calc(var(--end-anim) + var(--feather-anim))
+    );
+            mask: radial-gradient(
+      circle at var(--center-x) var(--center-y),
+      transparent 0 calc(var(--start-anim) - var(--feather-anim)),
+      #000 var(--start-anim) var(--end-anim),
+      transparent calc(var(--end-anim) + var(--feather-anim))
+    );
+  }
+`;
+
+export const MotionLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 1; /* above bg, below labels and cover */
+  pointer-events: none;
+`;
+
+export const MotionBlobWrap = styled.div`
+  position: absolute;
+  top: ${({ $top }) => $top};
+  left: ${({ $left }) => $left};
+  transform: translate(-50%, -50%);
+  width: ${({ $size }) => $size};
+  height: ${({ $size }) => $size};
+  border-radius: 50%;
+`;
+
+export const MotionBlob = styled.div`
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
 `;
 
 export const CenterImage = styled.img`
