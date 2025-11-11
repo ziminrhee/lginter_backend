@@ -13,6 +13,7 @@ export const DEVICE_TYPES = {
   MOBILE: 'mobile',
   SBM1: 'sbm1',
   MW1: 'mw1',
+  MW2: 'mw2',
   TV1: 'tv1',
   TV2: 'tv2',
   SW1: 'sw1',

@@ -1,14 +1,15 @@
 import styled from 'styled-components';
 
 export const Container = styled.div`
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
   background: #FFFAF5; /* 미색 화이트 */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  padding: 4vh 4vw;
+  padding: 3vh 3vw;
   position: relative;
   overflow: hidden;
   /* control how close blobs sit in corners (kissing) */
