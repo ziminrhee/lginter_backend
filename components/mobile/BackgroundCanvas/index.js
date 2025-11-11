@@ -24,13 +24,13 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
   const [isVoiceActive, setIsVoiceActive] = useState(false)
   const moodLoop = useMemo(() => [...MOOD_WORDS, MOOD_WORDS[0]], [])
   const [blobSettings, setBlobSettings] = useState({
-    centerX: 41,
+    centerX: 38,
     centerY: 23,
     start: 50,
     end: 99,
-    blurPx: 52,
+    blurPx: 53,
     rimTilt: 30,
-    feather: 15,
+    feather: 12,
     innerBlur: 20,
     // Five-stop palette from reference: 0,13,47,78,100
     color0: '#F7F7E8', // 0%
@@ -48,6 +48,34 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
     bottom: '#FFF0FB',
     midStop: 23,
     lowStop: 64,
+  })
+  const [mirrorSettings, setMirrorSettings] = useState({
+    centerX: 68,
+    centerY: 84,
+    start: 50,
+    end: 63,
+    blurPx: 88,
+    rimTilt: 23,
+    feather: 15,
+    innerBlur: 23,
+    color0: '#F7F7E8',
+    color1: '#F4E9D7',
+    color2: '#F79CBF',
+    color3: '#C5F7EA',
+    color4: '#C8F4E9',
+    tintAlpha: 0.85,
+    boost: 1.9,
+  })
+  const [maskSettings, setMaskSettings] = useState({
+    enabled: true,
+    color: '#FFFFFF',
+    opacity: 0.6,
+    blurPx: 20,
+    radius: 120,
+    centerX: 50,
+    centerY: 50,
+    blend: 'normal',
+    showPanel: false,
   })
 
   useEffect(() => {
@@ -135,6 +163,40 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
             })(),
           }))
         }
+        if (window.mirrorSettings) {
+          const ms = window.mirrorSettings
+          setMirrorSettings(prev => ({
+            centerX: ms.centerX ?? prev.centerX,
+            centerY: ms.centerY ?? prev.centerY,
+            start: ms.start ?? prev.start,
+            end: ms.end ?? prev.end,
+            blurPx: ms.blurPx ?? prev.blurPx,
+            rimTilt: ms.rimTilt ?? prev.rimTilt,
+            feather: ms.feather ?? prev.feather,
+            innerBlur: ms.innerBlur ?? prev.innerBlur,
+            color0: ms.color0 ?? prev.color0,
+            color1: ms.color1 ?? prev.color1,
+            color2: ms.color2 ?? prev.color2,
+            color3: ms.color3 ?? prev.color3,
+            color4: ms.color4 ?? prev.color4,
+            tintAlpha: ms.tintAlpha ?? prev.tintAlpha,
+            boost: ms.boost ?? prev.boost,
+          }))
+        }
+        if (window.maskSettings) {
+          const ms = window.maskSettings
+          setMaskSettings(prev => ({
+            enabled: ms.enabled ?? prev.enabled,
+            color: typeof ms.color === 'string' ? ms.color : prev.color,
+            opacity: Number.isFinite(Number(ms.opacity)) ? Math.max(0, Math.min(1, Number(ms.opacity))) : prev.opacity,
+            blurPx: Number.isFinite(Number(ms.blurPx)) ? Math.max(0, Math.min(200, Number(ms.blurPx))) : prev.blurPx,
+            radius: Number.isFinite(Number(ms.radius)) ? Math.max(10, Math.min(600, Number(ms.radius))) : prev.radius,
+            centerX: Number.isFinite(Number(ms.centerX)) ? Math.max(0, Math.min(100, Number(ms.centerX))) : prev.centerX,
+            centerY: Number.isFinite(Number(ms.centerY)) ? Math.max(0, Math.min(100, Number(ms.centerY))) : prev.centerY,
+            blend: typeof ms.blend === 'string' ? ms.blend : prev.blend,
+            showPanel: Boolean(ms.showPanel ?? prev.showPanel),
+          }))
+        }
       }
       requestAnimationFrame(check)
     }
@@ -176,6 +238,8 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
   const saturationValue = isVoiceActive ? 1.35 : 1
   const boostedTintAlpha = Math.min(1, blobSettings.tintAlpha * (isVoiceActive ? 1.05 : 1))
   const boostedOuterBoost = Math.min(2.2, blobSettings.boost * (isVoiceActive ? 1.08 : 1))
+  const mirrorTintAlpha = Math.min(1, mirrorSettings.tintAlpha * (isVoiceActive ? 1.05 : 1))
+  const mirrorOuterBoost = Math.min(2.2, mirrorSettings.boost * (isVoiceActive ? 1.08 : 1))
   const uiScaleTransitionMs = 240
   // Figma-provided orbit shapes scale helpers
   const designBase = 350
@@ -190,18 +254,19 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
   const bgGradient = `linear-gradient(to bottom, ${bgSettings.top} 0%, ${bgSettings.mid} ${bgSettings.midStop}%, ${bgSettings.low} ${bgSettings.lowStop}%, ${bgSettings.bottom} 100%)`
 
   return (
-    <S.Root $bg={bgGradient}>
-      <S.KeyframesGlobal $blurIncrease={0} $blobSize={blobSize} $orbitRadiusScale={orbitRadiusScale} />
-      <S.BlobCssGlobal />
-      <S.BlobWrapper
-        $top={blobTop}
-        $size={blobSize}
-        $opacity={blobAlpha}
-        $opacityMs={blobOpacityMs}
-        $brightness={brightnessIncrease}
-      >
-        <S.BGGlow />
-        <S.Cluster $spin={clusterSpin}>
+    <>
+      <S.Root $bg={bgGradient}>
+        <S.KeyframesGlobal $blurIncrease={0} $blobSize={blobSize} $orbitRadiusScale={orbitRadiusScale} />
+        <S.BlobCssGlobal />
+        <S.BlobWrapper
+          $top={blobTop}
+          $size={blobSize}
+          $opacity={blobAlpha}
+          $opacityMs={blobOpacityMs}
+          $brightness={brightnessIncrease}
+        >
+          <S.BGGlow />
+          <S.Cluster $spin={clusterSpin}>
             {showOrbits && (
               <>
                 {/* Orbit A - Figma spec: linear gradient #000 -> #0D3664 -> #E096E2 with 50px blur */}
@@ -272,6 +337,46 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
               <div className="ring-boost" />
             </div>
           </S.Cluster>
+          {/* Mirrored mask blob: same size and levers as the main blob, opposite rim direction */}
+          <div
+            className={`blob mirror${isListeningFlag ? ' frozen' : ''}`}
+            style={{
+              '--center-x': `${mirrorSettings.centerX}%`,
+              '--center-y': `${mirrorSettings.centerY}%`,
+              '--start': `${mirrorSettings.start}%`,
+              '--end': `${mirrorSettings.end}%`,
+              '--blur': `${mirrorSettings.blurPx + blurIncrease}px`,
+              '--feather': `${mirrorSettings.feather}%`,
+              '--inner-blur': `${mirrorSettings.innerBlur}px`,
+              '--rim-tilt': `${mirrorSettings.rimTilt}deg`,
+              '--c0': `${mirrorSettings.color0}`,
+              '--c1': `${mirrorSettings.color1}`,
+              '--c2': `${mirrorSettings.color2}`,
+              '--c3': `${mirrorSettings.color3}`,
+              '--c4': `${mirrorSettings.color4}`,
+              '--bg': `radial-gradient(circle at var(--center-x) var(--center-y), var(--c0) 0%, var(--c1) 13%, var(--c2) 47%, var(--c3) 78%, var(--c4) 100%)`,
+              '--tint-alpha': mirrorTintAlpha,
+              '--boost': mirrorOuterBoost,
+              width: `${blobSize}px`,
+              aspectRatio: '1 / 1',
+              transform: `translateZ(0) scale(${blobScale * uiScaleFactor})`,
+              transition: `transform ${uiScaleTransitionMs}ms ease, opacity ${blobOpacityMs}ms ease, filter ${blobOpacityMs}ms ease`,
+              opacity: mainBlobFade ? 0 : 1,
+              filter: (() => {
+                const filters = []
+                if (mainBlobFade) filters.push('blur(10px)')
+                if (saturationValue !== 1) filters.push(`saturate(${saturationValue})`)
+                return filters.length ? filters.join(' ') : 'none'
+              })(),
+              ...(isListeningFlag ? {
+                animation: 'none',
+                '--start-wobble': 'calc(12% - var(--start))',
+                '--end-wobble': 'calc(86% - var(--end))',
+                '--feather-wobble': '3%',
+                '--blur-wobble': 'calc(8px - var(--blur))'
+              } : {})
+            }}
+          />
         {showMoodWords && (
           <S.MoodWords $visible={showMoodWordsDelayed} style={{ '--loop-steps': moodLoop.length - 1, '--cycle-duration': '7.2s' }}>
             <S.MoodTrack>
@@ -308,7 +413,9 @@ export default function BackgroundCanvas({ cameraMode = 'default', showMoodWords
           </S.KeywordLayer>
         )}
         </S.BlobWrapper>
-    </S.Root>
+      </S.Root>
+      {/* Panel removed: mirrored blob follows main blob levers automatically */}
+    </>
   )
 }
 

@@ -19,13 +19,14 @@ import InputForm from './views/InputForm';
 import { fonts } from "./sections/styles/tokens";
 
 import BackgroundCanvas from '@/components/mobile/BackgroundCanvas';
+// public 자산 사용: 문자열 경로로 next/image에 전달
 
 export default function MobileControls() {
   const router = useRouter();
   const isModal = router?.query?.variant === 'modal';
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState(null);
-  const [notice, setNotice] = useState(null);
+  const [showResetButton, setShowResetButton] = useState(false);
   const { emitNewName, emitNewVoice, socket } = useSocketMobile({
     onMobileDecision: (payload) => {
       // payload: { userId, params: { temp, humidity, lightColor, music }, reason }
@@ -34,21 +35,9 @@ export default function MobileControls() {
         humidity: payload?.params?.humidity,
         lightColor: payload?.params?.lightColor,
         song: payload?.params?.music,
-        windLevel: payload?.params?.windLevel,
-        purifierOn: payload?.params?.purifierOn,
-        purifierMode: payload?.params?.purifierMode,
-        reason: payload?.reason,
-        emotionKeyword: payload?.emotionKeyword,
-        flags: payload?.flags
+        reason: payload?.reason
       };
       setRecommendations(rec);
-      if (payload?.flags?.abusive) {
-        setNotice('정중한 표현으로 다시 말씀해 주세요.');
-        setTimeout(() => setNotice(null), 2500);
-      } else if (payload?.flags?.offTopic) {
-        setNotice('새로운 대답이네요! 적절한 값을 추천했어요.');
-        setTimeout(() => setNotice(null), 2000);
-      }
       setLoading(false);
     }
   });
@@ -60,7 +49,6 @@ export default function MobileControls() {
   const [listeningStage, setListeningStage] = useState('idle'); // idle | live | finalHold | fadeOut
   const [orchestratingLock, setOrchestratingLock] = useState(false);
   const orchestrateMinMs = 5500;
-  const [showResetDelayed, setShowResetDelayed] = useState(false);
 
   const { isListening, startVoiceRecognition } = useSpeechRecognition({
     onStart: () => {
@@ -114,25 +102,23 @@ export default function MobileControls() {
     fullTypedText
   );
 
-  const { fadeText, localShowResults, labelsShown, resetShowcase } = usePostTypingShowcase({ fullTypedText, typedReason, recommendations, setOrchestratingLock });
+  const { fadeText, localShowResults, resetShowcase } = usePostTypingShowcase({ fullTypedText, typedReason, recommendations, setOrchestratingLock });
 
   // (Typewriter, weather, press handlers moved to hooks above)
 
   // applies scroll lock while mounted
   useScrollLock();
 
-  // Show reset button 2s after labels appear; keep showing through results
+  // 결과가 준비되고 로딩/락이 해제된 후 2초 뒤 리셋 버튼 표시
   useEffect(() => {
-    if ((labelsShown || localShowResults) && recommendations && !loading && !orchestratingLock) {
-      if (typeof window !== 'undefined') {
-        window.orbitPaused = true;
-      }
-      setShowResetDelayed(false);
-      const t = setTimeout(() => setShowResetDelayed(true), 2000);
+    if (recommendations && !loading && !orchestratingLock) {
+      setShowResetButton(false);
+      const t = setTimeout(() => setShowResetButton(true), 2000);
       return () => clearTimeout(t);
     }
+    setShowResetButton(false);
     return undefined;
-  }, [labelsShown, localShowResults, recommendations, loading, orchestratingLock]);
+  }, [recommendations, loading, orchestratingLock]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -160,20 +146,11 @@ export default function MobileControls() {
   }, [name, mood, emitNewName, emitNewVoice, socket]);
 
   const handleReset = useCallback(() => {
-    setSubmitted(false);
-    setRecommendations(null);
-    setLoading(false);
-    setName("");
-    setMood("");
-    setShowPress(false);
-    resetShowcase();
+    // 전체 페이지 리로드로 초기 상태 복귀
     if (typeof window !== 'undefined') {
-      window.showFinalOrb = false;
-      window.showCenterGlow = false;
-      window.orbitPaused = false;
       try { window.location.reload(); } catch {}
     }
-  }, [resetShowcase]);
+  }, []);
 
   
 
@@ -201,7 +178,6 @@ export default function MobileControls() {
           <Image src="/brand/furon_logo.png" alt="Furon" priority width={24} height={24} />
         </BrandLogoWrap>
       )}
-      {notice && <Notice>{notice}</Notice>}
       <BackgroundCanvas
         cameraMode="default"
         showMoodWords={!submitted && showPress}
@@ -254,17 +230,17 @@ export default function MobileControls() {
             showHighlights={showHighlights}
             fadeText={fadeText}
           />
-        ) : (recommendations && localShowResults && !loading && !orchestratingLock) ? null : null}
+        ) : null}
         {/* Note: moved keyframe animations to globals.css to avoid JSX parsing issues */}
       </ContentWrapper>
-      {showResetDelayed && (
+      <BlobControls />
+      {showResetButton && (
         <ResetButtonWrap>
           <ResetButton type="button" onClick={handleReset}>
-            다시 대화하기
+            다시 입력하기
           </ResetButton>
         </ResetButtonWrap>
       )}
-      <BlobControls />
     </AppContainer>
   );
 }
@@ -312,16 +288,4 @@ const BrandLogoWrap = styled.div`
     height: 100%;
     object-fit: contain;
   }
-`;
-
-const Notice = styled.div`
-  position: fixed;
-  top: 10px;
-  right: 12px;
-  background: rgba(0,0,0,0.6);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  z-index: 2300;
 `;

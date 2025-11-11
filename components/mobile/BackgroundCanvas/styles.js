@@ -255,6 +255,67 @@ export const BGGlow = styled.div`
   filter: blur(70px);
 `;
 
+export const MaskLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+`;
+
+export const MaskCircle = styled.div`
+  position: absolute;
+  left: ${(p) => `${p.$x}%`};
+  top: ${(p) => `${p.$y}%`};
+  transform: translate(-50%, -50%);
+  width: ${(p) => `${p.$r}px`};
+  height: ${(p) => `${p.$r}px`};
+  border-radius: 50%;
+  background: ${(p) => p.$color || '#ffffff'};
+  opacity: ${(p) => (p.$opacity != null ? p.$opacity : 0.6)};
+  filter: ${(p) => `blur(${p.$blur || 0}px)`};
+  mix-blend-mode: ${(p) => p.$blend || 'normal'};
+`;
+
+export const MaskControlPanel = styled.div`
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 9999;
+  pointer-events: auto;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: #222;
+  font-size: 12px;
+  line-height: 1.2;
+  box-shadow: 0 6px 22px rgba(0,0,0,0.15);
+`;
+
+export const MaskControlRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  & > label {
+    min-width: 64px;
+  }
+  & input[type="range"] {
+    width: 140px;
+  }
+  & input[type="color"] {
+    width: 28px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    background: none;
+  }
+  & select {
+    font-size: 12px;
+  }
+`;
+
 export const KeyframesGlobal = createGlobalStyle`
   @keyframes shaderWave {
     0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
@@ -441,6 +502,42 @@ export const BlobCssGlobal = createGlobalStyle`
   @supports (-webkit-mask-composite: source-in) {
     .blob::after {
       -webkit-mask: radial-gradient(circle at var(--center-x) var(--center-y), transparent 0 calc(var(--start-anim) - var(--feather-anim)), #000 var(--start-anim) var(--end-anim), transparent calc(var(--end-anim) + var(--feather-anim))), linear-gradient(calc(180deg + var(--rim-tilt)), transparent 35%, #000 60%);
+      -webkit-mask-composite: source-in;
+    }
+  }
+
+  /* Mirrored blob: flip the rim orientation to the opposite side (bottom vs top) */
+  .blob.mirror::after {
+    background:
+      var(--bg),
+      radial-gradient(circle at var(--center-x) var(--center-y),
+        rgba(235, 201, 255, 0) 0 calc(var(--start-anim) - var(--feather-anim)),
+        rgba(235, 201, 255, var(--tint-alpha)) var(--end-anim));
+    background-blend-mode: normal, screen;
+    filter: blur(calc(var(--blur) + var(--blur-wobble))) drop-shadow(0 24px 36px rgba(186, 136, 255, 0.35));
+    opacity: 1;
+    -webkit-mask: radial-gradient(
+      circle at var(--center-x) var(--center-y),
+      transparent 0 calc(var(--start-anim) - var(--feather-anim)),
+      #000 var(--start-anim) var(--end-anim),
+      transparent calc(var(--end-anim) + var(--feather-anim))
+    );
+            mask: radial-gradient(
+      circle at var(--center-x) var(--center-y),
+      transparent 0 calc(var(--start-anim) - var(--feather-anim)),
+      #000 var(--start-anim) var(--end-anim),
+      transparent calc(var(--end-anim) + var(--feather-anim))
+    );
+  }
+  @supports (mask-composite: intersect) {
+    .blob.mirror::after {
+      mask: radial-gradient(circle at var(--center-x) var(--center-y), transparent 0 calc(var(--start-anim) - var(--feather-anim)), #000 var(--start-anim) var(--end-anim), transparent calc(var(--end-anim) + var(--feather-anim))), linear-gradient(calc(0deg + var(--rim-tilt)), transparent 35%, #000 60%);
+      mask-composite: intersect;
+    }
+  }
+  @supports (-webkit-mask-composite: source-in) {
+    .blob.mirror::after {
+      -webkit-mask: radial-gradient(circle at var(--center-x) var(--center-y), transparent 0 calc(var(--start-anim) - var(--feather-anim)), #000 var(--start-anim) var(--end-anim), transparent calc(var(--end-anim) + var(--feather-anim))), linear-gradient(calc(0deg + var(--rim-tilt)), transparent 35%, #000 60%);
       -webkit-mask-composite: source-in;
     }
   }
