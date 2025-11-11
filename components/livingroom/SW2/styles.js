@@ -2,12 +2,13 @@ import styled, { keyframes } from 'styled-components';
 
 export const Root = styled.div`
   min-height: 100vh;
-  background: transparent;
+  background: #FFFFFF;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   padding: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 `;
 
 export const Container = styled.div`
@@ -42,6 +43,119 @@ export const Subtitle = styled.p`
   margin-bottom: 2rem;
 `;
 
+export const TopStatus = styled.div`
+  position: absolute;
+  top: 5vh;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #334155;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  text-align: center;
+  font-size: clamp(25px, 3.6vmin, 43px);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  pointer-events: none;
+  z-index: 10;
+`;
+
+export const Dots = styled.span`
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.2em;
+`;
+
+export const Dot = styled.span`
+  transition: opacity 120ms linear;
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+`;
+
+/* Full-bleed background image for selected Figma frame */
+export const FrameBg = styled.div`
+  position: absolute;
+  inset: 0;
+  background-image: ${({ $url }) => ($url ? `url(${$url})` : 'none')};
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.8;
+  z-index: 0;
+`;
+
+export const CenterImage = styled.img`
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(905px * 1.1);
+  height: calc(905px * 1.1);
+  object-fit: cover;
+  border-radius: 100px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+  z-index: 3;
+`;
+
+export const CaptionWrap = styled.div`
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(40% + 620px); /* pushed a bit further down */
+  text-align: center;
+  pointer-events: none;
+  z-index: 6;
+`;
+
+export const HeadText = styled.div`
+  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 600; /* Semi Bold */
+  font-size: clamp(28px, 4.8vmin, 96px);
+  color: #111827;
+  letter-spacing: 0.02em;
+`;
+
+export const SubText = styled.div`
+  margin-top: 0.9rem; /* more space between head and sub text */
+  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 400; /* Regular */
+  font-size: clamp(16px, 2.6vmin, 56px);
+  color: #374151;
+  letter-spacing: 0.02em;
+`;
+
+/* Blob center labels over background */
+export const LabelsLayer = styled.div`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2; /* above background, below album image (z=3) */
+`;
+
+const LabelBase = styled.div`
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: Pretendard, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 400;
+  font-size: clamp(16px, 2.6vmin, 56px); /* match SubText size */
+  color: #818181;
+  opacity: 0.7;
+  text-align: center;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.22);
+`;
+
+export const LabelA = styled(LabelBase)`
+  top: 20%;
+  left: 28%;
+`;
+
+export const LabelB = styled(LabelBase)`
+  top: 74%;
+  left: 21%;
+`;
+
+export const LabelC = styled(LabelBase)`
+  top: 70%;
+  left: 80%;
+`;
 export const Column = styled.div`
   display: flex;
   flex-direction: column;
