@@ -116,7 +116,7 @@ export default function SW2Controls() {
       </S.LabelsLayer>
 
       {/* Center album/image */}
-      <S.CenterImage src="/sw2-cover.png" alt="cover" />
+      <S.CenterImage src="/sw2_albumcover/borealis.png" alt="cover" />
       <S.CaptionWrap>
         <S.HeadText>Borealis</S.HeadText>
         <S.SubText>Scott Burkely</S.SubText>

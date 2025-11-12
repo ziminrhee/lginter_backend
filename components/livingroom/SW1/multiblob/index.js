@@ -6,8 +6,8 @@ export default function SW1Controls() {
   const [climateData, setClimateData] = useState(null);
   const [participantCount, setParticipantCount] = useState(0);
   const [dotCount, setDotCount] = useState(0);
-  const BACKGROUND_URL = "/sw1-bg.png"; // place exported 2160x3840 frame in public/sw1-bg.png
-  const ELLIPSE_URL = "/sw1-ellipse.png"; // place exported ellipse in public/sw1-ellipse.png
+  const BACKGROUND_URL = "/sw1_blobimage/sw1-frame.png"; // frame image moved to public/sw1_blobimage/sw1-frame.png
+  const ELLIPSE_URL = "/sw1_blobimage/sw1-ellipse.png"; // ellipse image moved to public/sw1_blobimage/sw1-ellipse.png
 
   const handleDeviceDecision = useCallback((data) => {
     const seenUsers = new Set();
