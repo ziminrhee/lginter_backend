@@ -25,9 +25,6 @@ export default function useSocketMobile(options = {}) {
     // Socket 즉시 초기화 (fetch 제거로 지연 최소화)
     console.log("Mobile Hook: Initializing socket connection...");
 
-    // Ensure server-side Socket.IO is warm
-    fetch(SOCKET_CONFIG.PATH).catch(() => {});
-
     const s = io({
       path: SOCKET_CONFIG.PATH,
       transports: SOCKET_CONFIG.TRANSPORTS,

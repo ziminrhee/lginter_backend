@@ -93,6 +93,8 @@ export default function handler(req, res) {
       console.log("🎤 Received mobile-new-voice:", payload);
 
       io.to("entrance").emit("entrance-new-voice", { userId: payload.userId, text: payload.text, emotion: payload.emotion });
+      // also surface to livingroom so SW2 can show keyword instantly
+      io.to("livingroom").emit("device-new-voice", { userId: payload.userId, text: payload.text, emotion: payload.emotion });
       io.to("controller").emit("controller-new-voice", payload);
     });
 
@@ -115,8 +117,8 @@ export default function handler(req, res) {
       
       // split fan-out
       io.to("livingroom").emit("device-new-decision", { target: 'tv2', env: tv2Env, reason: payload.reason, decisionId, mergedFrom: [payload.userId] });
-      io.to("livingroom").emit("device-new-decision", { target: 'sw1', env: sw1Env, decisionId });
-      io.to("livingroom").emit("device-new-decision", { target: 'sw2', env: sw2Env, decisionId });
+      io.to("livingroom").emit("device-new-decision", { target: 'sw1', env: sw1Env, decisionId, mergedFrom: [payload.userId] });
+      io.to("livingroom").emit("device-new-decision", { target: 'sw2', env: sw2Env, decisionId, reason: payload.reason, emotionKeyword: payload.emotionKeyword, mergedFrom: [payload.userId] });
       // targeted to mobile user (include flags/emotionKeyword when present)
       io.to(`user:${payload.userId}`).emit("mobile-new-decision", {
         userId: payload.userId,
