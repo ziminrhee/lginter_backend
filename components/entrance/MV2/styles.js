@@ -1,8 +1,8 @@
 import styled, { keyframes } from 'styled-components';
 
 const slide = keyframes`
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-33.333%); }
+  0% { transform: translateX(-33.333%); }
+  100% { transform: translateX(0%); }
 `;
 
 export const Container = styled.div`
@@ -29,9 +29,9 @@ export const Background = styled.div`
 export const Content = styled.div`
   position: relative;
   z-index: 1;
-  width: 80vw;
-  max-width: 1400px;
-  height: 30vh;
+  width: 90vw;
+  max-width: 1920px;
+  height: 22vh;
   border-radius: 28px;
   background: rgba(0, 0, 0, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.2);

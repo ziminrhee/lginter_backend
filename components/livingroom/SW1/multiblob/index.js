@@ -49,7 +49,7 @@ export default function SW1Controls() {
     <S.Root $backgroundUrl={BACKGROUND_URL}>
       <S.MotionProps />
       <S.TopStatus>
-        <span>가족 구성원 4 명을 위한 조율중</span>
+        <span>사용자 {participantCount}명을 위한 조율중</span>
         <S.Dots aria-hidden="true">
           <S.Dot $visible={dotCount >= 1}>.</S.Dot>
           <S.Dot $visible={dotCount >= 2}>.</S.Dot>
@@ -61,22 +61,22 @@ export default function SW1Controls() {
         <S.SmallBlobsLayer>
           <S.SmallBlobA>
             <S.SmallBlobLabel>
-              22℃<br/>강력 제습
+              {`${Math.round(baseTemp - 2)}℃`}<br/>{computeMode(baseHum + 10)}
             </S.SmallBlobLabel>
           </S.SmallBlobA>
           <S.SmallBlobB>
             <S.SmallBlobLabel>
-              24℃<br/>적정 제습
+              {`${Math.round(baseTemp + 1)}℃`}<br/>{computeMode(baseHum)}
             </S.SmallBlobLabel>
           </S.SmallBlobB>
           <S.SmallBlobC>
             <S.SmallBlobLabel>
-              20℃<br/>적정 제습
+              {`${Math.round(baseTemp - 3)}℃`}<br/>{computeMode(baseHum - 5)}
             </S.SmallBlobLabel>
           </S.SmallBlobC>
           <S.SmallBlobD>
             <S.SmallBlobLabel>
-              21℃<br/>강력 제습
+              {`${Math.round(baseTemp - 1)}℃`}<br/>{computeMode(baseHum + 5)}
             </S.SmallBlobLabel>
           </S.SmallBlobD>
         </S.SmallBlobsLayer>

@@ -1,6 +1,20 @@
 // Single entrypoint for OpenAI decisions. JS-only.
 
 const DEFAULT_TIMEOUT_MS = 6000; // faster failover to avoid UX stalls
+const USE_STRUCTURED = String(process.env.NEXT_PUBLIC_AI_STRUCTURED || '').toLowerCase() === 'true';
+
+async function decideWithStructured({ currentProgram, currentUser }) {
+  const { decideController } = await import('@/ai/deciders/controller');
+  const safe = await decideController({ currentProgram, currentUser, previousMusicId: currentProgram?.env?.music });
+  const { params, reason, flags, emotionKeyword } = safe || {};
+  return {
+    updatedProgram: { text: reason || '', version: (currentProgram?.version || 0) + 1, reason: reason || 'ai-structured' },
+    params,
+    reason: reason || 'ai-structured',
+    flags: flags || { offTopic: false, abusive: false },
+    emotionKeyword: emotionKeyword || '',
+  };
+}
 
 function withTimeout(promise, ms = DEFAULT_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
@@ -10,6 +24,13 @@ function withTimeout(promise, ms = DEFAULT_TIMEOUT_MS) {
 }
 
 export async function decideEnv({ systemPrompt, latestConversation, currentProgram, currentUser }) {
+  if (USE_STRUCTURED) {
+    try {
+      return await withTimeout(decideWithStructured({ currentProgram, currentUser }), DEFAULT_TIMEOUT_MS);
+    } catch (e) {
+      // fall through to legacy path
+    }
+  }
   // Build chat messages and call through Next.js API proxy to keep API key server-side
   const body = {
     model: 'gpt-4o-mini',

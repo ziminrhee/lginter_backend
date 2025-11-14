@@ -5,7 +5,7 @@ export function createSocketHandlers({ setMessage, activateMessage, duration = D
     const emotion = payload.emotion?.trim();
     const text = payload.text?.trim();
     const keyword = emotion || text || "따뜻한";
-    const message = `${keyword} 감정을 위한 공간 조성중입니다`;
+    const message = `${keyword}의 감정을 기반으로 조율을 시작합니다`;
 
     setMessage({ message, timestamp: Date.now() });
     activateMessage(true);
